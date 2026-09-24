@@ -1,0 +1,1154 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Одинокая крепость</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+SC:wght@500;700&family=PT+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --night: #0d1218;
+    --stone: #161e27;
+    --stone2: #1d2731;
+    --line: #2e3b49;
+    --frost: #e3eaef;
+    --mist: #9aabb8;
+    --ember: #eaa648;
+    --ember-ink: #1c1206;
+    --blood: #d95a4c;
+    --moss: #86c493;
+    --ice: #9ad3ea;
+    --glow: rgba(234, 166, 72, .13);
+    --serif: 'Alegreya', 'PT Serif', Georgia, serif;
+    --caps: 'Alegreya SC', 'Alegreya', Georgia, serif;
+    --mono: 'PT Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  body[data-act="2"] { --glow: rgba(154, 211, 234, .12); }
+
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background-color: var(--night);
+    background-image: radial-gradient(130% 55% at 50% -12%, var(--glow), transparent 62%);
+    background-attachment: fixed;
+    color: var(--frost);
+    font: 17px/1.55 var(--serif);
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+  .wrap { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: 8px 40px; }
+
+  /* ---------- header ---------- */
+  .bar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    background: rgba(13, 18, 24, .9);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar-in {
+    max-width: 640px; margin: 0 auto; padding: 10px 16px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  }
+  .who { display: flex; flex-direction: column; line-height: 1.1; }
+  .who b { font-family: var(--caps); font-size: 19px; letter-spacing: .02em; }
+  .who span { font-size: 13px; color: var(--mist); }
+  .hp { flex: 1; min-width: 110px; }
+  .hp-top { display: flex; justify-content: space-between; font-size: 13px; color: var(--mist); }
+  .hp-top b { font-family: var(--mono); color: var(--frost); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .menu-btn {
+    background: none; border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 12px; font-size: 14px; color: var(--mist);
+  }
+  .chips { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-family: var(--mono); font-size: 12px; color: var(--mist);
+    border: 1px solid var(--line); border-radius: 99px; padding: 1px 9px;
+  }
+  .chip.gold { color: var(--ember); border-color: rgba(234, 166, 72, .45); }
+  .chip.ice { color: var(--ice); border-color: rgba(154, 211, 234, .4); }
+
+  .meter { height: 7px; background: #070b0f; border-radius: 99px; overflow: hidden; margin-top: 3px; }
+  .meter i { display: block; height: 100%; background: var(--blood); border-radius: 99px; transition: width .45s ease; }
+  .meter.ally i { background: var(--moss); }
+
+  .panel {
+    max-width: 640px; margin: 0 auto; padding: 4px 16px 14px;
+    display: grid; gap: 12px; font-size: 15px;
+  }
+  .panel dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; margin: 0; }
+  .panel dl div { background: var(--stone); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  .panel dt { font-size: 12px; color: var(--mist); }
+  .panel dd { margin: 0; font-family: var(--mono); }
+  .panel ul { margin: 0; padding-left: 18px; color: var(--mist); }
+  .panel ul b { color: var(--frost); font-weight: 500; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn {
+    background: var(--stone2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 14px; font-size: 15px;
+  }
+  .btn.warn { border-color: rgba(217, 90, 76, .55); color: #f0a198; }
+  .btn:disabled { opacity: .4; cursor: default; }
+
+  /* ---------- story ---------- */
+  .eyebrow {
+    font-family: var(--caps); font-size: 13px; letter-spacing: .12em;
+    color: var(--ember); margin: 18px 0 2px;
+  }
+  body[data-act="2"] .eyebrow { color: var(--ice); }
+  h1 {
+    font-family: var(--caps); font-weight: 700; font-size: 29px; line-height: 1.15;
+    margin: 0 0 14px; text-wrap: balance; letter-spacing: .01em;
+  }
+  .text { display: grid; gap: 12px; }
+  .text p { margin: 0; }
+  .read {
+    border: 1px solid var(--line); background: var(--stone);
+    padding: 12px 14px; font-style: italic; color: #d3dde4;
+    box-shadow: inset 0 0 0 3px var(--night), inset 0 0 0 4px var(--line);
+  }
+  .gain { font-size: 15px; color: var(--moss); }
+  .gain b { font-family: var(--caps); letter-spacing: .06em; font-weight: 500; margin-right: 6px; }
+  .muted { font-size: 15px; color: var(--mist); }
+  .reply {
+    margin-bottom: 14px; padding: 10px 14px; border-radius: 10px;
+    background: rgba(234, 166, 72, .08); border: 1px dashed rgba(234, 166, 72, .35);
+    font-size: 16px;
+  }
+  body[data-act="2"] .reply { background: rgba(154, 211, 234, .07); border-color: rgba(154, 211, 234, .35); }
+
+  .choices { display: grid; gap: 10px; margin-top: 22px; }
+  .choice {
+    display: grid; gap: 3px; text-align: left; width: 100%;
+    background: var(--stone2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 13px 16px; font-size: 17px; line-height: 1.3;
+    transition: border-color .15s, transform .08s;
+  }
+  .choice:hover { border-color: rgba(234, 166, 72, .6); }
+  .choice:active { transform: scale(.985); }
+  .choice.main { background: var(--ember); color: var(--ember-ink); border-color: var(--ember); font-weight: 500; }
+  .tag { font-family: var(--mono); font-size: 12.5px; color: var(--ember); }
+  body[data-act="2"] .tag { color: var(--ice); }
+
+  /* ---------- combat ---------- */
+  .foes { display: grid; gap: 8px; }
+  .foe { background: var(--stone); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .foe-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .foe-top b { font-family: var(--caps); font-size: 18px; }
+  .foe-top span { font-size: 13px; color: var(--mist); }
+  .foe-top .n { margin-left: auto; font-family: var(--mono); color: var(--frost); font-variant-numeric: tabular-nums; }
+  .log {
+    list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px;
+    font-size: 15px; line-height: 1.4;
+  }
+  .log li { padding-left: 12px; border-left: 2px solid var(--line); color: var(--mist); }
+  .log li.hit { border-color: var(--blood); color: var(--frost); }
+  .log li.heal { border-color: var(--moss); color: var(--frost); }
+  .log li.ally { border-color: var(--moss); color: var(--frost); }
+  .log li.win { border-color: var(--ember); color: var(--ember); }
+  .log li.fresh { animation: slide .35s ease; }
+  @keyframes slide { from { opacity: 0; transform: translateY(4px); } }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+  .act {
+    display: grid; gap: 2px; text-align: left;
+    background: var(--stone2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px;
+  }
+  .act b { font-weight: 500; font-size: 16px; }
+  .act span { font-family: var(--mono); font-size: 11.5px; color: var(--mist); }
+  .act.primary { background: var(--ember); border-color: var(--ember); color: var(--ember-ink); }
+  .act.primary span { color: rgba(28, 18, 6, .75); }
+  .act:disabled { opacity: .38; cursor: default; }
+  .verdict { margin-top: 18px; font-family: var(--caps); font-size: 24px; }
+  .verdict.win { color: var(--ember); }
+  .verdict.lose { color: var(--blood); }
+  @media (max-width: 360px) { .acts { grid-template-columns: 1fr; } }
+
+  /* ---------- title ---------- */
+  .title h1.big { font-size: clamp(38px, 11vw, 56px); line-height: 1; margin: 6px 0 12px; }
+  .lede { color: var(--mist); margin: 0 0 20px; }
+  .sheet { background: var(--stone); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 12px; }
+  .sheet-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .sheet-h b { font-family: var(--caps); font-size: 24px; }
+  .sheet-h span { color: var(--mist); font-size: 15px; }
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 0; }
+  .stats div { text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 2px; background: var(--night); }
+  .stats dt { font-size: 11px; color: var(--mist); letter-spacing: .02em; }
+  .stats dd { margin: 0; font-family: var(--mono); font-size: 18px; }
+  .abil { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 15.5px; }
+  .gear { margin: 0; font-size: 15px; color: var(--mist); }
+  .how h2 { font-family: var(--caps); font-size: 18px; margin: 22px 0 6px; font-weight: 500; }
+  .how p { margin: 0; font-size: 15.5px; color: var(--mist); }
+  @media (max-width: 380px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+
+  /* ---------- dice ---------- */
+  .dice {
+    position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+    background: rgba(5, 8, 12, .74); padding: 16px;
+  }
+  .dice-card {
+    width: 100%; max-width: 340px; text-align: center;
+    background: var(--stone); border: 1px solid var(--line); border-radius: 16px; padding: 22px 18px 18px;
+  }
+  .dice-card .lbl { font-family: var(--caps); letter-spacing: .1em; color: var(--mist); font-size: 14px; }
+  .d20 {
+    width: 118px; height: 118px; margin: 14px auto; position: relative;
+    clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+    background: var(--ember); display: grid; place-items: center;
+  }
+  .d20::before {
+    content: ""; position: absolute; inset: 0;
+    clip-path: polygon(50% 17%, 84% 72%, 16% 72%);
+    background: rgba(255, 255, 255, .2);
+  }
+  .d20 b { position: relative; font-family: var(--mono); font-size: 40px; color: var(--ember-ink); }
+  .d20.spin { animation: wob .12s linear infinite; }
+  .d20.nat20 { background: var(--moss); }
+  .d20.nat1 { background: var(--blood); }
+  @keyframes wob { 50% { transform: rotate(9deg) scale(.95); } }
+  .math { font-family: var(--mono); font-size: 15px; color: var(--mist); min-height: 1.4em; }
+  .vd { font-family: var(--caps); font-size: 26px; margin: 4px 0 14px; min-height: 1.3em; }
+  .vd.ok { color: var(--moss); }
+  .vd.no { color: var(--blood); }
+  .dice-card .choices { margin-top: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .d20.spin, .log li.fresh { animation: none; }
+    .meter i { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="dice" class="dice" hidden></div>
+
+<script>
+(() => {
+  const KEY = 'questone-lonely-hold-v1';
+  const STAT = { str: 'Сила', dex: 'Ловкость', wis: 'Внимание' };
+  const HERO = { mods: { str: 3, dex: 1, wis: 1 }, maxHp: 12, baseAc: 16, atk: 5 };
+  const GARREN = { maxHp: 13, ac: 18, atk: 4 };
+
+  const rnd = n => 1 + Math.floor(Math.random() * n);
+  const roll = (n, s) => { let t = 0; for (let i = 0; i < n; i++) t += rnd(s); return t; };
+  const fmt = m => (m >= 0 ? '+' : '−') + Math.abs(m);
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const val = x => (typeof x === 'function' ? x(S) : x);
+
+  let S = null;      // game state (saved)
+  let CP = null;     // checkpoint before a hard fight
+  let SAVED = null;  // save found at boot
+  let MENU = false, CONFIRM = false, CUR = [], LOGSEEN = 0;
+
+  function fresh() {
+    return {
+      scene: 'title', act: 1, hp: HERO.maxHp, potions: 0, wind: true,
+      coin: false, ring: false, coldRes: false, rope: false,
+      f: {}, tmp: null, combat: null, esc: null,
+      garren: { hp: GARREN.maxHp, down: false },
+      st: { rolls: 0, ok: 0, fail: 0, crit: 0 }
+    };
+  }
+  const ac = () => HERO.baseAc + (S.ring ? 1 : 0);
+  function heal(n) { const b = S.hp; S.hp = Math.min(HERO.maxHp, S.hp + n); return S.hp - b; }
+  function hurt(n) { S.hp = Math.max(0, S.hp - n); }
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ S, CP })); } catch (e) {} }
+  function load() { try { const r = JSON.parse(localStorage.getItem(KEY)); if (r && r.S) return r; } catch (e) {} return null; }
+
+  /* ================= escape obstacles ================= */
+  const OB = [
+    { title: 'Дубина великана',
+      text: 'Великан делает шаг, и огромная ледяная дубина со свистом летит прямо на тебя.',
+      opts: [{ t: 'Отпрыгнуть в сторону', stat: 'dex', dc: 12 }, { t: 'Принять удар на щит', stat: 'str', dc: 12 }],
+      ok: 'Дубина проходит в волоске от тебя и крошит пол в щебень. Ты уже бежишь дальше.',
+      fail: 'Ты теряешь драгоценную секунду.' },
+    { title: 'Подъём наверх',
+      text: 'Нужно вернуться на верхний этаж. Гаррен уже взобрался по обломкам и сбрасывает тебе конец верёвки.',
+      opts: [{ t: 'Лезть по верёвке', stat: 'str', dc: 10 }],
+      ok: 'Ты подтягиваешься рывками, и Гаррен втаскивает тебя наверх за ремень.',
+      fail: 'Обледенелая верёвка выскальзывает из рук, и ты съезжаешь вниз.' },
+    { title: 'Завал',
+      text: 'Великан бьёт плечом в стену. С потолка рушатся камни и перегораживают проход к выходу.',
+      opts: [{ t: 'Перелезть через завал', stat: 'str', dc: 10 }, { t: 'Протиснуться в щель', stat: 'dex', dc: 12 }],
+      ok: 'Обдирая ладони, ты перебираешься через камни. Выход совсем близко!',
+      fail: 'Камни осыпаются под ногами, и ты застреваешь.' },
+    { title: 'Ледяной пол',
+      text: 'Пол прихожей покрыт скользкой коркой льда, а за спиной грохочут шаги великана.',
+      opts: [{ t: 'Бежать, не упав', stat: 'dex', dc: 10 }],
+      ok: 'Ноги разъезжаются, но ты удерживаешь равновесие и вылетаешь к пролому в стене.',
+      fail: 'Ты поскальзываешься и растягиваешься на льду.' },
+    { title: 'Последний рывок',
+      text: 'Сквозь пролом видны дневной свет и снег. Великан совсем рядом.',
+      opts: [{ t: 'Рвануть к свету', stat: 'str', dc: 10 }],
+      ok: 'Последним усилием ты вырываешься наружу, в метель.',
+      fail: 'Сугроб у пролома держит ноги, как клей.' }
+  ];
+  const ob = s => OB[Math.min(s.esc.i, OB.length - 1)];
+
+  function escOk(s) {
+    const o = ob(s);
+    s.tmp = o.ok; s.esc.ok++; s.esc.i++;
+    return s.esc.ok >= 3 ? 'outside' : 'escape';
+  }
+  function escFail(s) {
+    const o = ob(s);
+    s.esc.i++;
+    const gUp = !s.garren.down;
+    const tgt = gUp && rnd(2) === 1 ? 'garren' : 'hero';
+    const tac = tgt === 'hero' ? ac() : GARREN.ac;
+    const d = rnd(20), tot = d + 5, hit = d === 20 || (d !== 1 && tot >= tac);
+    let msg = o.fail + ' Великан замахивается: к20 ' + d + ' +5 = ' + tot + ' против КД ' + tac + '. ';
+    if (!hit) msg += 'Мимо!';
+    else {
+      const dm = roll(1, 6) + 2;
+      if (tgt === 'hero') { hurt(dm); msg += 'Удар! Ты теряешь ' + dm + ' ХП.'; }
+      else {
+        s.garren.hp = Math.max(0, s.garren.hp - dm);
+        msg += 'Гаррен закрывает тебя щитом и принимает удар (−' + dm + ' ХП).';
+        if (s.garren.hp <= 0) { s.garren.down = true; msg += ' Он падает и вспышкой исчезает в твоём амулете.'; }
+      }
+    }
+    s.tmp = msg;
+    return 'escape';
+  }
+
+  function summary(s) {
+    return '~Бросков к20: ' + s.st.rolls + ' · успешных проверок: ' + s.st.ok + ' · проваленных: ' + s.st.fail + ' · выпало 20: ' + s.st.crit + '.';
+  }
+
+  /* ================= scenes ================= */
+  const SC = {
+    lib: {
+      act: 1, title: 'Библиотека замка',
+      text: [
+        '>Сквозь высокие окна льётся тёплый полуденный свет. Голос мастера Элиаса гудит ровно, как шмель над страницей, и веки сами собой тяжелеют…',
+        '— Йорик! — сухой палец стучит по столу прямо у тебя перед носом. — Я польщён, что история торговых гильдий Амна действует на тебя лучше макового отвара. Но сегодня особый день.',
+        'Мастеру Элиасу сто двенадцать лет: тонкие белые волосы, крючковатый нос и удивительно ясные голубые глаза. Ради знаний он готов простить почти всё.'
+      ],
+      choices: [
+        { t: 'Спросить о фестивале', if: s => !s.f.fest, go: 'lib_fest' },
+        { t: 'Спросить про амулет', if: s => !s.f.amulet, go: 'lib_amulet' },
+        { t: 'Извиниться и бежать на тренировку', go: 'bharmyr' }
+      ]
+    },
+    lib_fest: {
+      title: 'Библиотека замка', enter: s => { s.f.fest = true; },
+      text: [
+        '«Через две недели в Глубоководье начнётся День Фей, а следом Фестиваль Выхода Флота. Твоя семья уже в пути. Мы с тобой отправимся последними, телепортацией, сегодня во второй половине дня».',
+        '«Амну важно показать дружбу богатым семьям Побережья Мечей, так что постарайся не зевать на приёмах. И возьми снаряжение с запасом. В Глубоководье никогда не знаешь, что ждёт за углом, особенно в праздники».'
+      ],
+      choices: [{ t: 'Спросить о другом', go: 'lib' }]
+    },
+    lib_amulet: {
+      title: 'Библиотека замка', enter: s => { s.f.amulet = true; },
+      text: [
+        'Ты машинально касаешься амулета на груди. Гранат в оправе из переплетённых линий — семейная реликвия. Ты носишь его, сколько себя помнишь.',
+        'Элиас щурится: «Любопытная вязь. Похоже на эльфийскую работу, очень старую. Держи его при себе. Старые вещи иногда помнят больше, чем люди».',
+        '«И не заставляй Бхармира ждать. Он ждёт тебя на последнюю тренировку, а от ожидания дворфы добрее не становятся».'
+      ],
+      choices: [{ t: 'Спросить о другом', go: 'lib' }]
+    },
+    bharmyr: {
+      title: 'Тренировочный зал',
+      text: [
+        'Лейтенант Бхармир встречает тебя у входа в огромный каменный зал. Это двухсотлетний дворф с заплетённой русой бородой и руками, похожими на дубовые корни.',
+        '«Опаздываешь, — ворчит он, но глаза смеются. — Плотники построили новую полосу препятствий, и она сложнее прежней. Пройдёшь — будь готов к гостям. Увидимся на арене».',
+        'Уже уходя, он бросает через плечо: «И Ремми тебя искал. Кажется, побежал обратно на кухню».'
+      ],
+      choices: [{ t: 'Шагнуть на полосу препятствий', go: 'course_dark' }]
+    },
+    course_dark: {
+      title: 'Полоса препятствий',
+      text: [
+        '>Пахнет свежей сосновой стружкой. Ты переступаешь порог, и волшебные факелы вдоль стен разом мигают и гаснут. Темнота. Где-то впереди раскатывается смех Бхармира.',
+        'Ты нащупываешь у стены запасной факел и огниво. Искра, вторая, и дрожащий свет выхватывает бревенчатый коридор. В его конце стоит массивная деревянная дверь.'
+      ],
+      choices: [{ t: 'Подойти к двери', go: 'course_door' }]
+    },
+    course_door: {
+      title: 'Дверь с секретом',
+      text: ['Дверь окована железом, а ручка блестит, будто её только что смазали. Слишком уж приглашающе.'],
+      choices: [
+        { t: 'Осмотреть дверь внимательно', check: { stat: 'wis', dc: 10, ok: 'door_spot', fail: 'door_open' } },
+        { t: 'Просто открыть', go: 'door_open' }
+      ]
+    },
+    door_spot: {
+      title: 'Дверь с секретом',
+      text: ['От ручки вверх тянется тонкая проволока. Она ведёт к ведру, подвешенному над проёмом. В ведре что-то зелёное и подозрительно булькает.'],
+      choices: [{ t: 'Обезвредить механизм', check: { stat: 'dex', dc: 10, ok: 'door_disarmed', fail: 'door_slimed' } }]
+    },
+    door_open: {
+      title: 'Дверь с секретом',
+      text: ['Ты тянешь ручку, и наверху что-то щёлкает. Ведро опрокидывается прямо над твоей головой!'],
+      choices: [{ t: 'Отпрыгнуть!', check: { stat: 'dex', dc: 10, ok: 'door_dodged', fail: 'door_slimed' } }]
+    },
+    door_disarmed: {
+      title: 'Дверь с секретом',
+      text: ['Ты осторожно снимаешь проволоку с крючка. Ведро остаётся висеть, дверь тихо открывается. Где-то впереди разочарованно хмыкает Бхармир.'],
+      choices: [{ t: 'Пройти дальше', go: 'course_fork' }]
+    },
+    door_dodged: {
+      title: 'Дверь с секретом',
+      text: ['Ты отскакиваешь, и липкая зелёная жижа шлёпается на пол там, где ты только что стоял. Чисто сработано.'],
+      choices: [{ t: 'Пройти дальше', go: 'course_fork' }]
+    },
+    door_slimed: {
+      title: 'Дверь с секретом', enter: s => { s.f.slimed = true; },
+      text: ['Шлёп! Холодная слизь стекает по волосам за воротник. Пахнет она чем-то средним между болотом и вчерашним супом. Ничего не поделаешь, придётся идти дальше.'],
+      choices: [{ t: 'Пройти дальше', go: 'course_fork' }]
+    },
+    course_fork: {
+      title: 'Развилка',
+      text: ['За дверью два пути. Слева с высокого уступа свисает верёвка без единого узла. Справа чернеет бассейн: вода тёмная, как чернила, дна не видно. Где-то на той стороне должен быть выход.'],
+      choices: [
+        { t: 'Взобраться по верёвке', check: { stat: 'str', dc: 10, ok: 'fork_rope', fail: 'fork_fail' } },
+        { t: 'Нырнуть в бассейн и искать проход', check: { stat: 'wis', dc: 10, ok: 'fork_pool', fail: 'fork_fail' } }
+      ]
+    },
+    fork_fail: {
+      title: 'Развилка', enter: s => { s.f.forkFails = (s.f.forkFails || 0) + 1; },
+      text: s => s.f.forkFails < 2
+        ? ['Не выходит: руки соскальзывают, а темнота путает направление. Ты отдыхаешь пару вдохов у стены.']
+        : ['Сверху гремит голос Бхармира: «Ну-ну, не утопись мне перед праздником!» В стене со скрипом открывается люк, и ты выбираешься на арену. Мокрый, но не сломленный.'],
+      choices: s => s.f.forkFails < 2
+        ? SC.course_fork.choices
+        : [{ t: 'Выйти на арену', go: 'arena' }]
+    },
+    fork_rope: {
+      title: 'Развилка',
+      text: ['Подтянуться, перехватить, ещё раз, и вот ты на уступе. Там натянут трос с роликом. Ты хватаешься за ручку и с ветерком съезжаешь вниз, прямо на песок арены.'],
+      choices: [{ t: 'Приземлиться', go: 'arena' }]
+    },
+    fork_pool: {
+      title: 'Развилка',
+      text: ['Под водой ты замечаешь слабое пятно света. Это отверстие в стенке бассейна! Вынырнув с другой стороны, ты поднимаешься по лестнице и выходишь на край песчаной арены.'],
+      choices: [{ t: 'Выйти на арену', go: 'arena' }]
+    },
+    arena: {
+      title: 'Арена',
+      text: [
+        '>Едва твои ноги касаются песка, ты встаёшь в стойку. Сейчас кто-то из учеников Бхармира выскочит проверить твои навыки. Скорее всего, Торвальд: Дресик ещё залечивает синяки после вчерашнего спарринга.',
+        'Вокруг разбросаны бочки и обломки скамей, за ними легко спрятаться. Оружие у учеников тренировочное, но бьёт всё равно больно.'
+      ],
+      choices: [
+        { t: 'Осмотреть арену', check: { stat: 'wis', dc: 12, ok: 'arena_spot', fail: 'arena_ambush' } },
+        { t: 'Выйти в центр и ждать', go: 'arena_ambush' }
+      ]
+    },
+    arena_spot: {
+      title: 'Арена', enter: s => { s.f.first = true; },
+      text: ['За перевёрнутой скамьёй мелькает тень. Торвальд! Он ещё не знает, что ты его заметил.'],
+      choices: [{ t: 'Атаковать первым', go: 'fight_torvald' }]
+    },
+    arena_ambush: {
+      title: 'Арена', enter: s => { s.f.first = false; },
+      text: ['Из-за бочки с боевым кличем выскакивает Торвальд с тренировочной булавой. Застал врасплох!'],
+      choices: [{ t: 'Защищаться', go: 'fight_torvald' }]
+    },
+    fight_torvald: {
+      title: 'Спарринг',
+      combat: {
+        foe: { name: 'Торвальд', sub: 'ученик-стражник', hp: 11, ac: 12, atk: 3, dmg: [1, 4, 1], verb: 'бьёт {t} булавой' },
+        training: true, first: s => (s.f.first ? 'hero' : 'enemy'), win: 'arena_win', lose: 'arena_lose'
+      }
+    },
+    arena_win: {
+      title: 'Арена',
+      text: [
+        'Торвальд падает на песок и поднимает руки: «Сдаюсь, сдаюсь!»',
+        'Бхармир одобрительно хлопает в ладоши: «Вот это другое дело. В Глубоководье не посрамишь».'
+      ],
+      choices: [{ t: 'Отдышаться', go: 'healer' }]
+    },
+    arena_lose: {
+      title: 'Арена',
+      text: [
+        'Ты оказываешься лицом в песке. Торвальд протягивает руку: «Не переживай, просто у меня удачный день».',
+        'Бхармир качает головой: «В Глубоководье тебе поддаваться не будут. Но стойка уже лучше, чем месяц назад».'
+      ],
+      choices: [{ t: 'Отряхнуться', go: 'healer' }]
+    },
+    healer: {
+      title: 'После боя', enter: s => { s.hp = HERO.maxHp; s.potions += 1; },
+      text: [
+        'Замковая целительница даёт тебе глотнуть искрящегося фиолетового зелья, и синяки бледнеют на глазах. Второй флакон она вкладывает тебе в руку: «На дорогу. Мало ли что».',
+        '+Получено: зелье лечения. Здоровье восстановлено.',
+        'Бхармир кладёт тебе руку на плечо: «Две недели — не вечность. Будь начеку, парень. Попрощайся со всеми, с кем нужно, и не опаздывай к Элиасу».'
+      ],
+      choices: [
+        { t: 'Найти Ремми на кухне', go: 'remmy' },
+        { t: 'Сразу идти к Элиасу', go: 'circle' }
+      ]
+    },
+    remmy: {
+      title: 'Кухня',
+      text: s => [
+        'Ремми Салливан, твой друг детства, сидит на мешке с мукой и подбрасывает яблоко. Ему семнадцать: высокий, худой, светлые волосы вечно растрёпаны.' +
+          (s.f.slimed ? ' Увидев тебя, он хохочет: «Это что, слизь? Бхармир опять за своё?»' : ''),
+        '«Слышал, ты уезжаешь на праздник, — говорит он уже тише. — Счастливчик. А я недостаточно важный для Глубоководья».',
+        'Он улыбается, но что-то в его голосе не так.'
+      ],
+      choices: [
+        { t: 'Присмотреться к нему', check: { stat: 'wis', dc: 10, ok: 'remmy_ok', fail: 'remmy_fail' } },
+        { t: 'Попрощаться и идти к Элиасу', go: 'circle' }
+      ]
+    },
+    remmy_ok: {
+      title: 'Кухня', enter: s => { s.coin = true; },
+      text: [
+        'Ремми крутит яблоко и не смотрит на тебя. Дело не в празднике: он боится, что ты уедешь в большой мир и забудешь его.',
+        '«Эй. Через две недели я вернусь, и ты расскажешь мне все кухонные сплетни. Договорились?»',
+        'Ремми выдыхает и лезет в карман: «Держи. Моя счастливая монета. Мне она всегда помогает… ну, иногда».',
+        '+Получено: монета Ремми. Один раз можно перебросить проваленную проверку.'
+      ],
+      choices: [{ t: 'Идти к Элиасу', go: 'circle' }]
+    },
+    remmy_fail: {
+      title: 'Кухня',
+      text: ['«Ладно, беги, а то Элиас превратит тебя в жабу». Ремми машет рукой и отворачивается к окну. Кажется, он хотел сказать что-то ещё.'],
+      choices: [{ t: 'Идти к Элиасу', go: 'circle' }]
+    },
+    circle: {
+      title: 'Круг телепортации',
+      text: [
+        '>Винтовая лестница уводит вниз, в толщу каменных стен. Два стражника у высокой железной двери кивают тебе и отворяют её. В древней серой комнате мастер Элиас склонился над кругом из замысловатых линий. Руны пульсируют в такт его словам.',
+        '«А, вот и ты», — рассеянно улыбается он. — «Семья будет ждать нас в Глубоководье. Готов?» В его голубых глазах мелькает гордость.'
+      ],
+      choices: [{ t: 'Встать в круг', go: 'teleport' }]
+    },
+    teleport: {
+      title: 'Круг телепортации',
+      text: [
+        '>Элиас поднимает руки и произносит последние слова заклинания. По груди разливается тепло, и вдруг амулет сам поднимается в воздух, будто для него исчезла тяжесть. Не успеваешь ты опомниться, как из граната вырывается багровая вспышка.',
+        'Резкий крик Элиаса. Рывок. Всё тело сжимается в точку…'
+      ],
+      choices: [{ t: 'Открыть глаза', go: 'storm', main: true }]
+    },
+    storm: {
+      act: 2, title: 'Облачные пики',
+      text: [
+        '>Воющий ветер бьёт в лицо, и ледяной холод заставляет открыть глаза. Никакого Глубоководья. Ты стоишь посреди снежной бури на вершине горы. Далеко внизу темнеет вечнозелёный лес, где-то воет волк.',
+        'Судя по высоте пиков, амулет забросил тебя в Облачные пики, за сотни миль от дома. Элиаса рядом нет. Сквозь метель видна груда камней. Там можно укрыться.'
+      ],
+      choices: [{ t: 'Пробиваться к камням', go: 'ruins' }]
+    },
+    ruins: {
+      title: 'Одинокая крепость',
+      text: [
+        'Вблизи груда камней оказывается руинами древнего сооружения, вросшего в склон горы. В скале высечен гладкий вход, покрытый вековым инеем. В нише деревянная дверь, над ней вьются руны.',
+        'По двери бегут замысловатые узоры и сходятся в центре в знакомую фигуру. Точно такую же, как на твоём амулете.'
+      ],
+      choices: [
+        { t: 'Прочитать руны', if: s => !s.f.runes, check: { stat: 'wis', dc: 12, ok: 'runes_ok', fail: 'runes_fail' } },
+        { t: 'Приложить амулет к двери', go: 'hall' }
+      ]
+    },
+    runes_ok: {
+      title: 'Одинокая крепость', enter: s => { s.f.runes = true; },
+      text: ['Буквы похожи на эльфийские, только старше. Ты складываешь их в слова: <em>«Одинокая крепость. Покажи Знак и войди!»</em>'],
+      choices: [{ t: 'Вернуться к двери', go: 'ruins' }]
+    },
+    runes_fail: {
+      title: 'Одинокая крепость', enter: s => { s.f.runes = true; },
+      text: ['Буквы похожи на эльфийские, но смысл ускользает. Пальцы коченеют, пора что-то делать.'],
+      choices: [{ t: 'Вернуться к двери', go: 'ruins' }]
+    },
+    hall: {
+      title: 'Прихожая',
+      text: s => [
+        s.f.hallSeen
+          ? 'Большой зал, пропасть поперёк пола, фрески на стенах. Снег медленно сыплется сквозь пролом.'
+          : '>Дверь со скрипом открывается. За ней огромный каменный зал. В дальнем конце, среди нагромождения валунов, сквозь пролом в стене пробиваются свет и снег. Белые ледяные усики тянутся по резному полу к выцветшим фрескам.',
+        'Через весь зал тянется пропасть шириной в десять футов. Футах в двадцати внизу угадывается нижний этаж.'
+      ],
+      enter: s => { if (s.f.hallVisit) s.f.hallSeen = true; s.f.hallVisit = true; },
+      choices: [
+        { t: 'Изучить фрески', if: s => !s.f.frescoes, go: 'hall_frescoes' },
+        { t: 'Обыскать обломки', if: s => !s.f.searched, check: { stat: 'wis', dc: 13, ok: 'hall_satchel', fail: 'hall_nothing' } },
+        { t: 'Искать другой путь вниз', if: s => !s.f.stairs, check: { stat: 'wis', dc: s => (s.f.frescoes ? 12 : 15), ok: 'hall_stairs', fail: 'hall_nostairs' } },
+        { t: 'Спуститься в пропасть по верёвке', if: s => s.rope, go: 'hall_rope' },
+        { t: 'Спрыгнуть в пропасть', check: { stat: 'dex', dc: 12, ok: 'jump_ok', fail: 'jump_fail' } }
+      ]
+    },
+    hall_frescoes: {
+      title: 'Прихожая', enter: s => { s.f.frescoes = true; },
+      text: [
+        'Фрески изображают древнюю отчаянную битву. Демоны сражаются бок о бок с хроматическими драконами против всё редеющего отряда героев. У одного из героев на щите… знак с твоего амулета?',
+        'У края фрески ты замечаешь, что одна плита пола уложена чуть иначе, чем остальные.',
+        '+Подсказка: искать другой путь вниз теперь проще (СЛ 12 вместо 15).'
+      ],
+      choices: [{ t: 'Вернуться в зал', go: 'hall' }]
+    },
+    hall_satchel: {
+      title: 'Прихожая', enter: s => { s.f.searched = true; s.potions += 1; s.coldRes = true; s.rope = true; },
+      text: [
+        'Среди камней лежит брошенная кожаная сумка. Внутри моток пеньковой верёвки, зелье лечения и пузырёк с голубоватой жидкостью. Это зелье сопротивления холоду, и ты выпиваешь его сразу. По телу разливается приятное тепло.',
+        '+Получено: зелье лечения, 50 футов верёвки. Урон холодом по тебе теперь вдвое меньше.'
+      ],
+      choices: [{ t: 'Вернуться в зал', go: 'hall' }]
+    },
+    hall_nothing: {
+      title: 'Прихожая', enter: s => { s.f.searched = true; },
+      text: ['Только камни, снег и кости давно замёрзшей птицы.'],
+      choices: [{ t: 'Вернуться в зал', go: 'hall' }]
+    },
+    hall_stairs: {
+      title: 'Прихожая', enter: s => { s.f.stairs = true; },
+      text: ['Ты нажимаешь на неровную плиту, и она со скрежетом уходит в пол. Вдоль стены открывается потайная лестница, ведущая вниз.'],
+      choices: [{ t: 'Спуститься по лестнице', go: 'ante' }]
+    },
+    hall_nostairs: {
+      title: 'Прихожая', enter: s => { s.f.stairs = true; },
+      text: ['Ты обшариваешь стены и пол, но ничего не находишь. Похоже, путь вниз один: через пропасть.'],
+      choices: [{ t: 'Вернуться в зал', go: 'hall' }]
+    },
+    hall_rope: {
+      title: 'Прихожая',
+      text: ['Ты привязываешь верёвку к выступу и осторожно спускаешься на нижний этаж.'],
+      choices: [{ t: 'Осмотреться внизу', go: 'ante' }]
+    },
+    jump_ok: {
+      title: 'Прихожая',
+      text: ['Ты прыгаешь, в полёте группируешься и перекатываешься по полу нижнего этажа. Цел!'],
+      choices: [{ t: 'Осмотреться внизу', go: 'ante' }]
+    },
+    jump_fail: {
+      title: 'Прихожая', enter: s => { s.f.jumpDmg = roll(1, 6); hurt(s.f.jumpDmg); },
+      text: s => ['Удар о каменный пол выбивает из тебя дух. Ты теряешь ' + s.f.jumpDmg + ' ХП, но поднимаешься.'],
+      choices: [{ t: 'Осмотреться внизу', go: 'ante' }]
+    },
+    ante: {
+      title: 'Передняя комната',
+      text: [
+        '>Ты замираешь, пока глаза привыкают к полумраку. Впереди два внушительных силуэта рухнувших колонн. За ними тянется длинный коридор к двери, вырезанной в виде лица.',
+        'Между колоннами поблёскивают осколки льда. Один из них, кажется, чуть крупнее остальных…'
+      ],
+      choices: [
+        { t: 'Присмотреться к осколкам', check: { stat: 'wis', dc: 12, ok: 'ante_spot', fail: 'ante_ambush' } },
+        { t: 'Перелезть через колонны', go: 'ante_ambush' }
+      ]
+    },
+    ante_spot: {
+      title: 'Передняя комната', enter: s => { s.f.first = true; },
+      text: ['Осколок моргает. Это ледяной мефит, маленький злобный элементаль, притворившийся куском льда! Он ещё думает, что ты его не заметил.'],
+      choices: [{ t: 'Ударить первым', go: 'fight_mephit' }]
+    },
+    ante_ambush: {
+      title: 'Передняя комната', enter: s => { s.f.first = false; },
+      text: ['Едва ты заносишь ногу над колонной, «осколок льда» расправляет крылья и с визгом бросается на тебя. Ледяной мефит!'],
+      choices: [{ t: 'К бою!', go: 'fight_mephit' }]
+    },
+    fight_mephit: {
+      title: 'Засада у колонн', checkpoint: true,
+      combat: {
+        foe: { name: 'Ледяной мефит', sub: 'малый элементаль', hp: 14, ac: 11, atk: 3, dmg: [1, 4, 1], cold: [1, 4], breath: true, burst: true, verb: 'полосует {t} когтями' },
+        first: s => (s.f.first ? 'hero' : 'enemy'), win: 'ante_win', lose: 'ko'
+      }
+    },
+    ante_win: {
+      title: 'Передняя комната',
+      text: ['Колонны позади. Вокруг них торчит мёрзлый кустарник, и среди веток что-то белеет. Коридор ведёт к двери-лицу.'],
+      choices: [
+        { t: 'Осмотреть кустарник', check: { stat: 'wis', dc: 10, ok: 'ring_ok', fail: 'ring_fail' } },
+        { t: 'Идти к двери', go: 'door' }
+      ]
+    },
+    ring_ok: {
+      title: 'Передняя комната', enter: s => { s.ring = true; },
+      text: [
+        'Это рука скелета. На костяном пальце серебряное кольцо с синим камнем. Ты надеваешь его, и по коже пробегает лёгкое покалывание.',
+        '+Получено: кольцо защиты. КД +1.'
+      ],
+      choices: [{ t: 'Идти к двери', go: 'door' }]
+    },
+    ring_fail: {
+      title: 'Передняя комната',
+      text: ['Сухие ветки, снег и ничего больше.'],
+      choices: [{ t: 'Идти к двери', go: 'door' }]
+    },
+    door: {
+      title: 'Говорящая дверь',
+      text: s => s.f.doorMet
+        ? ['Каменное лицо выжидающе смотрит на тебя. Над ним по-эльфийски выбито: <em>«Скажи мне „Откройся“»</em>.']
+        : [
+          'Дверь вырезана в виде огромного каменного лица. Стоит тебе подойти, как его глаза распахиваются.',
+          '«О! Гость! Настоящий живой гость! — голос гулкий и ужасно радостный. — Ты не представляешь, сколько лет мне не с кем было поболтать!»',
+          'Над дверью по-эльфийски выбита надпись: <em>«Скажи мне „Откройся“»</em>.'
+        ],
+      enter: s => { if (s.f.doorVisit) s.f.doorMet = true; s.f.doorVisit = true; },
+      choices: [
+        { t: '«Что это за место?»', if: s => !s.f.q1, do: s => { s.f.q1 = true; s.tmp = '«Ну, я не слишком уверена… Но, кажется, мои создатели пытались здесь что-то удержать. Что-то, что считали очень опасным».'; }, go: 'door' },
+        { t: '«Кто тебя создал?»', if: s => !s.f.q2, do: s => { s.f.q2 = true; s.tmp = '«Хороший вопрос! Имён они не назвали. Улыбались они почти никогда, а когда улыбались, выходило грубовато и жутко. Ты мне нравишься гораздо больше».'; }, go: 'door' },
+        { t: '«Что изображают фрески наверху?»', if: s => s.f.frescoes && !s.f.q3, do: s => { s.f.q3 = true; s.tmp = '«Какие фрески? А! Большая драка? Это древняя война. Которую мои создатели, конечно же, выиграли!»'; }, go: 'door' },
+        { t: '«Как мне пройти?»', if: s => !s.f.q4, do: s => { s.f.q4 = true; s.tmp = '«С моим-то дружелюбным характером создатели решили, что мне лучше не знать. Я по натуре угождаю людям и совсем не умею хранить секреты».'; }, go: 'door' },
+        { t: 'Попросить: «Откройся, пожалуйста»', do: s => { s.tmp = '«Я бы с радостью! Честно! Но я не умею открывать саму себя. Грустно, правда?»'; }, go: 'door' },
+        { t: 'Прочитать надпись вслух', do: s => { s.tmp = 'Дверь радостно повторяет за тобой: «Скажи мне „Откройся“!» Ничего не происходит. «Ой. Кажется, это так не работает».'; }, go: 'door' },
+        { t: 'Сказать по-эльфийски: «Откройся»', go: 'door_open2' }
+      ]
+    },
+    door_open2: {
+      title: 'Говорящая дверь',
+      text: [
+        'Едва ты произносишь «Откройся», дверь удивлённо ахает и со скрежетом отъезжает в стену. «Эй, полегче! Заходи ещё поболтать!»',
+        'За ней короткий лестничный пролёт уходит вниз, в кромешную тьму.'
+      ],
+      choices: [{ t: 'Спуститься', go: 'holding' }]
+    },
+    holding: {
+      title: 'Комната заточения',
+      text: ['>Круглая комната тонет в полной темноте. Даже слабый отсвет снега сверху её не пробивает. Вдоль стен висят четыре старых факела.'],
+      choices: [{ t: 'Зажечь факел', go: 'statues' }]
+    },
+    statues: {
+      title: 'Комната заточения',
+      text: [
+        '>Дрожащий свет с трудом раздвигает тьму. У дальней стены возвышается искусно высеченная статуя ледяного великана. У его ног стоит статуя поменьше, человеческая, наполовину заваленная камнем. Будто скульпторы бросили работу.',
+        'Ты подходишь ближе, и из амулета вырываются разноцветные лучи. Они бегут к рунам вокруг человеческой статуи, и глифы вспыхивают один за другим. Загорается последняя руна, и амулет начинает пульсировать.',
+        'С сухим треском камень осыпается каскадом. Фигура медленно оживает, смотрит на осколки у своих ног и поворачивается к тебе.'
+      ],
+      choices: [{ t: '«Кто ты?»', go: 'garren' }]
+    },
+    garren: {
+      title: 'Гаррен Бронсон',
+      text: [
+        'Перед тобой высокий воин с резкими угловатыми чертами, в кольчуге и со щитом. На поясе длинный меч, рукоять которого похожа на язык пламени.',
+        '«Гаррен Бронсон, паладин Кристалла, — хрипло говорит он, разминая плечи. — Какой сейчас год? Сколько я…»',
+        'Договорить он не успевает: изо льда у ног великана с визгом вырывается ещё один ледяной мефит!'
+      ],
+      choices: [{ t: 'Меч наголо! Гаррен сражается рядом', go: 'fight_final' }]
+    },
+    fight_final: {
+      title: 'Бой в комнате заточения', checkpoint: true,
+      combat: {
+        foe: { name: 'Ледяной мефит', sub: 'малый элементаль', hp: 14, ac: 11, atk: 3, dmg: [1, 4, 1], cold: [1, 4], breath: true, burst: true, verb: 'полосует {t} когтями' },
+        ally: true, first: 'hero', win: 'giant', lose: 'ko'
+      }
+    },
+    giant: {
+      title: 'Пробуждение великана', checkpoint: true,
+      enter: s => { if (s.garren.down) { s.garren.down = false; s.garren.hp = 5; s.f.garrenBack = true; } },
+      text: s => [
+        (s.f.garrenBack ? 'Амулет вспыхивает, и Гаррен, пошатываясь, шагает из него обратно в комнату. ' : '') +
+          'Передохнуть вы не успеваете. За спиной раздаётся глухой треск, словно раскалывается ледник. Статуя ледяного великана поворачивает голову, и в пустых глазницах загорается голубой свет.',
+        '«Это не статуя, — выдыхает Гаррен и поднимает щит. — Бежим!»',
+        'Драться с ним — верная смерть. Нужно выбраться тем же путём, каким ты пришёл. Три удачных рывка, и вы снаружи. За каждую неудачу великан бьёт дубиной.'
+      ],
+      choices: [{ t: 'Бежать!', main: true, do: s => { s.esc = { i: 0, ok: 0 }; }, go: 'escape' }]
+    },
+    escape: {
+      title: 'Побег',
+      text: s => [
+        '~Рывков: ' + s.esc.ok + ' из 3',
+        '<b>' + ob(s).title + '.</b> ' + ob(s).text
+      ],
+      choices: s => ob(s).opts.map(p => ({ t: p.t, check: { stat: p.stat, dc: p.dc, ok: escOk, fail: escFail } }))
+    },
+    outside: {
+      title: 'Лавина',
+      text: [
+        '>С оглушительным рёвом великан вырывается из руин: они больше не держат его. Он в два шага нагоняет тебя, и огромная дубина уже падает сверху. Вдруг по груди разливается тепло, и перед тобой встаёт Гаррен! Кристаллический воин поднимает щит и принимает удар. Снег под ногами содрогается.',
+        'Над плечом великана от скалы отделяется целая снежная шапка.',
+        '<b>Лавина!</b>'
+      ],
+      choices: [{ t: '…', main: true, go: 'end_good' }]
+    },
+    end_good: {
+      title: 'Конец первой части', ending: true,
+      text: s => [
+        'Белая тьма накрывает всё вокруг. Последнее, что ты помнишь, — тёплую пульсацию амулета и крепкую руку Гаррена на плече.',
+        'Ты очнёшься в маленькой деревушке у подножия гор. Но это уже история второй части, «Второго взгляда».',
+        '+Победа: Йорик выбрался из Одинокой крепости и освободил паладина Кристалла.',
+        summary(s)
+      ],
+      choices: [{ t: 'Сыграть снова', restart: true, main: true }]
+    },
+    ko: {
+      title: 'Тьма и холод', ending: true,
+      text: s => [
+        'Мир плывёт, колени подгибаются, и снег мягко принимает тебя. Холод уже не кажется таким злым…',
+        'Сквозь забытьё ты чувствуешь, как амулет на груди теплеет, всё сильнее и сильнее.',
+        'Ты очнёшься в маленькой деревушке у подножия гор и не вспомнишь, как туда попал. Амулет цел, и, кажется, светится чуть ярче, чем раньше.',
+        '~Конец первой части. Крепость осталась непокорённой.',
+        summary(s)
+      ],
+      choices: s => [
+        ...(CP ? [{ t: 'Вернуться к последнему испытанию', retry: true, main: true }] : []),
+        { t: 'Начать сначала', restart: true }
+      ]
+    }
+  };
+
+  /* ================= engine ================= */
+  function go(id) {
+    const sc = SC[id];
+    S.scene = id;
+    if (sc.act) S.act = sc.act;
+    if (sc.checkpoint) { S.combat = null; CP = clone(S); }
+    if (sc.enter) sc.enter(S);
+    if (sc.combat) startCombat(sc.combat);
+    if (S.hp <= 0 && !sc.ending && !sc.combat) { S.hp = 0; return go('ko'); }
+    save(); render(true);
+  }
+
+  function choose(c) {
+    if (c.restart) { S = fresh(); CP = null; save(); return go('lib'); }
+    if (c.retry && CP) { S = clone(CP); return go(S.scene); }
+    S.tmp = null;
+    if (c.check) return doCheck(c.check);
+    if (c.do) c.do(S);
+    go(val(c.go));
+  }
+
+  function doCheck(k) {
+    const mod = HERO.mods[k.stat];
+    const dc = val(k.dc);
+    rollModal({ label: STAT[k.stat], mod, dc }, ok => go(val(ok ? k.ok : k.fail)));
+  }
+
+  function rollModal(o, done) {
+    const el = document.getElementById('dice');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.hidden = false;
+    const run = () => {
+      const d = rnd(20), total = d + o.mod;
+      const ok = d === 20 || (d !== 1 && total >= o.dc);
+      S.st.rolls++; if (d === 20) S.st.crit++;
+      el.innerHTML =
+        '<div class="dice-card" role="dialog" aria-label="Бросок кубика">' +
+        '<div class="lbl">Проверка: ' + o.label + '</div>' +
+        '<div class="d20 spin"><b>' + rnd(20) + '</b></div>' +
+        '<div class="math">к20 ' + fmt(o.mod) + ' против СЛ ' + o.dc + '</div>' +
+        '<div class="vd"></div><div class="choices"></div></div>';
+      const die = el.querySelector('.d20'), face = die.querySelector('b');
+      let n = 0;
+      const iv = setInterval(() => {
+        face.textContent = rnd(20);
+        if (++n >= (reduce ? 1 : 14)) { clearInterval(iv); finish(); }
+      }, 55);
+      function finish() {
+        die.classList.remove('spin');
+        face.textContent = d;
+        if (d === 20) die.classList.add('nat20');
+        if (d === 1) die.classList.add('nat1');
+        el.querySelector('.math').textContent = d + ' ' + fmt(o.mod) + ' = ' + total + ' против СЛ ' + o.dc;
+        const vd = el.querySelector('.vd');
+        vd.className = 'vd ' + (ok ? 'ok' : 'no');
+        vd.textContent = d === 20 ? 'Двадцать! Успех' : d === 1 ? 'Единица! Провал' : ok ? 'Успех' : 'Провал';
+        const box = el.querySelector('.choices');
+        const next = document.createElement('button');
+        next.className = 'choice main'; next.textContent = 'Дальше';
+        next.onclick = () => { el.hidden = true; el.innerHTML = ''; S.st[ok ? 'ok' : 'fail']++; done(ok); };
+        box.appendChild(next);
+        if (!ok && S.coin) {
+          const re = document.createElement('button');
+          re.className = 'choice'; re.innerHTML = 'Перебросить<span class="tag">монета Ремми · один раз</span>';
+          re.onclick = () => { S.coin = false; save(); run(); };
+          box.appendChild(re);
+        }
+        next.focus();
+      }
+    };
+    run();
+  }
+
+  /* ---------- combat ---------- */
+  function startCombat(d) {
+    const f = d.foe;
+    S.combat = {
+      foe: Object.assign({}, f, { max: f.hp }), ally: !!d.ally, training: !!d.training,
+      win: d.win, lose: d.lose, power: true, log: [], over: null, round: 1
+    };
+    LOGSEEN = 0;
+    const first = val(d.first) || 'hero';
+    log('sys', 'Бой! ' + f.name + ': КД ' + f.ac + ', ' + f.hp + ' ХП.' + (d.ally ? ' Рядом с тобой Гаррен.' : ''));
+    if (first === 'enemy') { log('sys', f.name + ' нападает первым!'); foeTurn(); checkHero(); }
+    else log('sys', 'Ты успеваешь действовать первым.');
+  }
+  function log(cls, txt) { S.combat.log.push([cls, txt]); }
+
+  function heroAttack(power) {
+    const c = S.combat, f = c.foe;
+    if (power) c.power = false;
+    const d = rnd(20), tot = d + HERO.atk;
+    S.st.rolls++; if (d === 20) S.st.crit++;
+    const hit = d === 20 || (d !== 1 && tot >= f.ac);
+    const head = (power ? 'Мощный удар' : 'Удар мечом') + ': к20 ' + d + ' +5 = ' + tot + ' против КД ' + f.ac;
+    if (!hit) log('miss', head + ' — промах.');
+    else {
+      const dice = (power ? 2 : 1) * (d === 20 ? 2 : 1);
+      const dm = roll(dice, 8) + 3;
+      f.hp = Math.max(0, f.hp - dm);
+      log('hit', head + (d === 20 ? ' — КРИТ! ' : ' — попадание! ') + 'Урон ' + dice + 'к8+3 = ' + dm + '.');
+    }
+    endHeroTurn();
+  }
+  function drink() {
+    if (S.potions < 1) return;
+    S.potions--;
+    const h = heal(roll(2, 4) + 2);
+    log('heal', 'Ты выпиваешь зелье лечения: +' + h + ' ХП.');
+    endHeroTurn();
+  }
+  function secondWind() {
+    if (!S.wind) return;
+    S.wind = false;
+    const h = heal(rnd(10) + 1);
+    log('heal', 'Второе дыхание: +' + h + ' ХП. Ход ещё твой.');
+    save(); render();
+  }
+  function endHeroTurn() {
+    const c = S.combat;
+    if (c.foe.hp <= 0) return foeDown();
+    if (c.ally && !S.garren.down) garrenTurn();
+    if (c.foe.hp <= 0) return foeDown();
+    foeTurn();
+    checkHero();
+    c.round++;
+    save(); render();
+  }
+  function checkHero() {
+    const c = S.combat;
+    if (S.hp > 0 || c.over) return;
+    if (c.training) { S.hp = 1; log('sys', 'Ты падаешь на песок. Спарринг проигран.'); }
+    else log('sys', 'Йорик падает без сил…');
+    c.over = 'lose';
+  }
+  function garrenTurn() {
+    const f = S.combat.foe;
+    const d = rnd(20), tot = d + GARREN.atk;
+    const hit = d === 20 || (d !== 1 && tot >= f.ac);
+    const head = 'Гаррен рубит пылающим мечом: к20 ' + d + ' +4 = ' + tot;
+    if (!hit) return log('ally', head + ' — промах.');
+    const dm = roll(d === 20 ? 2 : 1, 8) + 2 + roll(1, 4);
+    f.hp = Math.max(0, f.hp - dm);
+    log('ally', head + ' — попадание! Урон ' + dm + ' (сталь и пламя).');
+  }
+  function damage(t, n) {
+    if (t === 'hero') return hurt(n);
+    S.garren.hp = Math.max(0, S.garren.hp - n);
+    if (S.garren.hp <= 0 && !S.garren.down) {
+      S.garren.down = true;
+      log('sys', 'Гаррен падает, и его тело вспышкой исчезает в твоём амулете. Камень тёплый и тихо гудит.');
+    }
+  }
+  function foeTurn() {
+    const c = S.combat, f = c.foe;
+    const gUp = c.ally && !S.garren.down;
+    if (f.breath && rnd(6) >= 5) {
+      log('hit', f.name + ' выдыхает конус ледяного воздуха!');
+      const targets = gUp ? ['hero', 'garren'] : ['hero'];
+      targets.forEach(t => {
+        const d = rnd(20), tot = d + 1, ok = tot >= 10;
+        let dm = roll(2, 4);
+        if (ok) dm = Math.floor(dm / 2);
+        if (t === 'hero' && S.coldRes) dm = Math.floor(dm / 2);
+        const who = t === 'hero' ? 'Твой спасбросок Ловкости' : 'Спасбросок Гаррена';
+        log(ok ? 'miss' : 'hit', who + ': ' + d + ' +1 = ' + tot + ' против СЛ 10 — ' + (ok ? 'половина урона' : 'провал') + ', −' + dm + ' ХП.');
+        damage(t, dm);
+      });
+      return;
+    }
+    const target = gUp && rnd(2) === 1 ? 'garren' : 'hero';
+    const tac = target === 'hero' ? ac() : GARREN.ac;
+    let d = rnd(20), note = '';
+    if (target === 'hero' && gUp) {
+      const d2 = rnd(20);
+      note = ' (Гаррен прикрывает щитом: помеха, выпало ' + d + ' и ' + d2 + ')';
+      d = Math.min(d, d2);
+    }
+    const tot = d + f.atk, hit = d === 20 || (d !== 1 && tot >= tac);
+    const head = f.name + ' ' + f.verb.replace('{t}', target === 'hero' ? 'тебя' : 'Гаррена') + ': к20 ' + d + ' ' + fmt(f.atk) + ' = ' + tot + ' против КД ' + tac + note;
+    if (!hit) return log('miss', head + ' — промах.');
+    const dm = roll(f.dmg[0] * (d === 20 ? 2 : 1), f.dmg[1]) + f.dmg[2];
+    let cold = f.cold ? roll(f.cold[0], f.cold[1]) : 0;
+    if (target === 'hero' && S.coldRes) cold = Math.floor(cold / 2);
+    const total = dm + cold;
+    log('hit', head + ' — попадание! Урон ' + total + (f.cold ? ' (' + dm + ' + ' + cold + ' холодом)' : '') + '.');
+    damage(target, total);
+  }
+  function foeDown() {
+    const c = S.combat, f = c.foe;
+    log('win', c.training ? f.name + ' сдаётся!' : f.name + ' повержен!');
+    if (f.burst) {
+      const d = rnd(20), tot = d + 1, ok = tot >= 10;
+      let dm = roll(1, 4);
+      if (ok) dm = Math.floor(dm / 2);
+      if (S.coldRes) dm = Math.floor(dm / 2);
+      S.hp = Math.max(1, S.hp - dm);
+      log(ok ? 'miss' : 'hit', 'Посмертный взрыв ледяных осколков! Спасбросок Ловкости: ' + d + ' +1 = ' + tot + ' против СЛ 10, −' + dm + ' ХП.');
+    }
+    c.over = 'win';
+    save(); render();
+  }
+  function endFight() {
+    const c = S.combat, t = c.over === 'win' ? c.win : c.lose;
+    S.combat = null;
+    go(t);
+  }
+
+  /* ================= render ================= */
+  const app = document.getElementById('app');
+
+  function lineHTML(l) {
+    if (l[0] === '>') return '<p class="read">' + l.slice(1) + '</p>';
+    if (l[0] === '+') {
+      const i = l.indexOf(':');
+      return i > 0 && i < 12
+        ? '<p class="gain"><b>' + l.slice(1, i) + '</b>' + l.slice(i + 1) + '</p>'
+        : '<p class="gain">' + l.slice(1) + '</p>';
+    }
+    if (l[0] === '~') return '<p class="muted">' + l.slice(1) + '</p>';
+    return '<p>' + l + '</p>';
+  }
+
+  function headerHTML() {
+    const pct = Math.max(0, S.hp / HERO.maxHp * 100);
+    const chips = [
+      '<span class="chip">КД ' + ac() + '</span>',
+      '<span class="chip">Зелья ' + S.potions + '</span>',
+      S.wind ? '<span class="chip">Второе дыхание</span>' : '',
+      S.coin ? '<span class="chip gold">Монета Ремми</span>' : '',
+      S.coldRes ? '<span class="chip ice">Защита от холода</span>' : '',
+      S.ring ? '<span class="chip gold">Кольцо</span>' : ''
+    ].join('');
+    let panel = '';
+    if (MENU) {
+      const canHeal = !S.combat && S.hp < HERO.maxHp;
+      const items = ['Длинный меч, кольчуга, щит', 'Семейный амулет с гранатом'];
+      if (S.rope) items.push('50 футов верёвки');
+      if (S.ring) items.push('Кольцо защиты (+1 КД)');
+      if (S.coin) items.push('Монета Ремми (переброс)');
+      panel =
+        '<div class="panel">' +
+        '<dl><div><dt>Сила</dt><dd>+3</dd></div><div><dt>Ловкость</dt><dd>+1</dd></div><div><dt>Внимание</dt><dd>+1</dd></div>' +
+        '<div><dt>Атака</dt><dd>+5</dd></div><div><dt>Урон</dt><dd>1к8+3</dd></div></dl>' +
+        '<ul><li><b>Мощный удар:</b> раз за бой, урон ×2</li><li><b>Второе дыхание:</b> ' + (S.wind ? 'готово' : 'использовано') + '</li>' +
+        items.map(x => '<li>' + x + '</li>').join('') + '</ul>' +
+        '<div class="row">' +
+        '<button class="btn" data-a="mpotion"' + (canHeal && S.potions ? '' : ' disabled') + '>Выпить зелье</button>' +
+        '<button class="btn" data-a="mwind"' + (canHeal && S.wind ? '' : ' disabled') + '>Второе дыхание</button>' +
+        '</div>' +
+        (CONFIRM
+          ? '<div class="row"><span class="muted">Весь прогресс пропадёт. Начать заново?</span><button class="btn warn" data-a="reset">Да, заново</button><button class="btn" data-a="noreset">Отмена</button></div>'
+          : '<div class="row"><button class="btn warn" data-a="askreset">Начать заново</button><button class="btn" data-a="menu">Закрыть</button></div>') +
+        '</div>';
+    }
+    return '<header class="bar"><div class="bar-in">' +
+      '<div class="who"><b>Йорик</b><span>воин · 1 уровень</span></div>' +
+      '<div class="hp"><div class="hp-top"><span>Здоровье</span><b>' + S.hp + '/' + HERO.maxHp + '</b></div><div class="meter"><i style="width:' + pct + '%"></i></div></div>' +
+      '<button class="menu-btn" data-a="menu" aria-expanded="' + MENU + '">' + (MENU ? 'Скрыть' : 'Меню') + '</button>' +
+      '<div class="chips">' + chips + '</div>' +
+      '</div>' + panel + '</header>';
+  }
+
+  function eyebrow() {
+    return '<p class="eyebrow">' + (S.act === 2 ? 'Акт II · Одинокая крепость' : 'Акт I · Замок в Амне') + '</p>';
+  }
+
+  function storyHTML(sc) {
+    const lines = [].concat(val(sc.text) || []);
+    CUR = (val(sc.choices) || []).filter(c => !c.if || c.if(S));
+    let h = eyebrow() + '<h1>' + sc.title + '</h1>';
+    if (S.tmp) h += '<div class="reply">' + S.tmp + '</div>';
+    h += '<div class="text">' + lines.map(lineHTML).join('') + '</div>';
+    h += '<div class="choices">' + CUR.map((c, i) => {
+      let tag = '';
+      if (c.check) tag = '<span class="tag">' + STAT[c.check.stat] + ' · к20' + fmt(HERO.mods[c.check.stat]) + ' · СЛ ' + val(c.check.dc) + '</span>';
+      return '<button class="choice' + (c.main ? ' main' : '') + '" data-c="' + i + '"><span>' + c.t + '</span>' + tag + '</button>';
+    }).join('') + '</div>';
+    return h;
+  }
+
+  function combatHTML(sc) {
+    const c = S.combat, f = c.foe;
+    let h = eyebrow() + '<h1>' + sc.title + '</h1><div class="foes">' +
+      '<div class="foe"><div class="foe-top"><b>' + f.name + '</b><span>' + f.sub + ' · КД ' + f.ac + '</span><span class="n">' + f.hp + '/' + f.max + '</span></div>' +
+      '<div class="meter"><i style="width:' + (f.hp / f.max * 100) + '%"></i></div></div>';
+    if (c.ally) {
+      const g = S.garren;
+      h += '<div class="foe"><div class="foe-top"><b>Гаррен</b><span>' + (g.down ? 'в амулете' : 'паладин Кристалла · союзник') + '</span><span class="n">' + g.hp + '/' + GARREN.maxHp + '</span></div>' +
+        '<div class="meter ally"><i style="width:' + (g.hp / GARREN.maxHp * 100) + '%"></i></div></div>';
+    }
+    h += '</div>';
+    const shown = c.log.slice(-8), startIdx = c.log.length - shown.length;
+    h += '<ol class="log">' + shown.map((e, i) =>
+      '<li class="' + e[0] + (startIdx + i >= LOGSEEN ? ' fresh' : '') + '">' + e[1] + '</li>').join('') + '</ol>';
+    LOGSEEN = c.log.length;
+    if (c.over) {
+      h += '<div class="verdict ' + c.over + '">' + (c.over === 'win' ? 'Победа' : 'Поражение') + '</div>' +
+        '<div class="choices"><button class="choice main" data-a="endfight">Дальше</button></div>';
+    } else {
+      h += '<div class="acts">' +
+        '<button class="act primary" data-a="atk"><b>Удар мечом</b><span>к20+5 · 1к8+3</span></button>' +
+        '<button class="act" data-a="power"' + (c.power ? '' : ' disabled') + '><b>Мощный удар</b><span>урон ×2 · раз за бой</span></button>' +
+        '<button class="act" data-a="wind"' + (S.wind && S.hp < HERO.maxHp ? '' : ' disabled') + '><b>Второе дыхание</b><span>+1к10+1 · не тратит ход</span></button>' +
+        '<button class="act" data-a="potion"' + (S.potions ? '' : ' disabled') + '><b>Зелье лечения</b><span>+2к4+2 · осталось ' + S.potions + '</span></button>' +
+        '</div>';
+    }
+    return h;
+  }
+
+  function titleHTML() {
+    const canContinue = SAVED && SAVED.S && SAVED.S.scene !== 'title';
+    return '<main class="wrap title">' +
+      '<p class="eyebrow">Проклятье Кристалла · Часть I</p>' +
+      '<h1 class="big">Одинокая крепость</h1>' +
+      '<p class="lede">Текстовое приключение по мотивам модуля «Первый взгляд» от D&amp;D Duet. Один герой, кубик к20 и путешествие, которое пошло совсем не туда.</p>' +
+      '<section class="sheet"><div class="sheet-h"><b>Йорик</b><span>человек, воин 1 уровня</span></div>' +
+      '<dl class="stats"><div><dt>Сила</dt><dd>+3</dd></div><div><dt>Ловкость</dt><dd>+1</dd></div><div><dt>Внимание</dt><dd>+1</dd></div><div><dt>Здоровье</dt><dd>12</dd></div><div><dt>КД</dt><dd>16</dd></div></dl>' +
+      '<ul class="abil"><li><b>Мощный удар.</b> Раз за бой урон удваивается.</li><li><b>Второе дыхание.</b> Раз за игру лечит 1к10+1 и не тратит ход.</li></ul>' +
+      '<p class="gear">Длинный меч, кольчуга, щит и семейный амулет с гранатом.</p></section>' +
+      '<section class="how"><h2>Как играть</h2><p>Выбирай действия кнопками. Если исход не ясен, бросается к20 и прибавляется бонус характеристики. Сумма не меньше сложности (СЛ) — успех. Двадцать на кубике — всегда успех, единица — всегда провал. Игра сохраняется сама.</p></section>' +
+      '<div class="choices">' +
+      (canContinue ? '<button class="choice main" data-a="continue">Продолжить приключение</button>' : '') +
+      '<button class="choice' + (canContinue ? '' : ' main') + '" data-a="new">' + (canContinue ? 'Начать заново' : 'Начать приключение') + '</button>' +
+      '</div></main>';
+  }
+
+  function render(scrollTop) {
+    document.body.dataset.act = S.act;
+    if (S.scene === 'title') { app.innerHTML = titleHTML(); return; }
+    const sc = SC[S.scene];
+    app.innerHTML = headerHTML() + '<main class="wrap">' + (S.combat ? combatHTML(sc) : storyHTML(sc)) + '</main>';
+    if (scrollTop) window.scrollTo(0, 0);
+  }
+
+  app.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    if (b.dataset.c !== undefined) return choose(CUR[+b.dataset.c]);
+    switch (b.dataset.a) {
+      case 'new': S = fresh(); CP = null; SAVED = null; return go('lib');
+      case 'continue': S = SAVED.S; CP = SAVED.CP || null; SAVED = null; LOGSEEN = S.combat ? S.combat.log.length : 0; return render(true);
+      case 'menu': MENU = !MENU; CONFIRM = false; return render();
+      case 'askreset': CONFIRM = true; return render();
+      case 'noreset': CONFIRM = false; return render();
+      case 'reset': MENU = false; CONFIRM = false; S = fresh(); CP = null; save(); return render(true);
+      case 'mpotion': if (S.potions) { S.potions--; heal(roll(2, 4) + 2); save(); } return render();
+      case 'mwind': if (S.wind) { S.wind = false; heal(rnd(10) + 1); save(); } return render();
+      case 'atk': return heroAttack(false);
+      case 'power': return heroAttack(true);
+      case 'wind': return secondWind();
+      case 'potion': return drink();
+      case 'endfight': return endFight();
+    }
+  });
+
+  function start(data) {
+    SAVED = (data && data.saved) || load();
+    S = fresh();
+    render();
+  }
+  try { window.claude && window.claude.hot && window.claude.hot.snapshot && window.claude.hot.snapshot(() => ({ saved: { S, CP } })); } catch (e) {}
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.ready) hot.ready(start); else start(hot && hot.data);
+})();
+</script>
+</body>
+</html>
