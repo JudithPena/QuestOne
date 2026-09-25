@@ -89,8 +89,54 @@
     if (m.undead) out.push('нежить');
     return out.length ? '<div class="foe-traits">' + out.join(' · ') + '</div>' : '';
   }
+  /* Полоса инициативы: порядок ходов в текущем раунде */
+  function initTracker(C) {
+    if (!C.order || !C.order.length) return '';
+    const items = C.order.map((id, i) => {
+      const e = typeof id === 'number' ? C.enemies.find(x => x.uid === id) : null;
+      const side = id === 'hero' ? 'hero' : id === 'comp' ? 'comp' : 'enemy';
+      const gone = (e && e.out) || (id === 'hero' && C.hero.down) || (id === 'comp' && C.comp && C.comp.down);
+      const st = C.over ? 'done' : i < C.idx ? 'done' : i === C.idx ? 'cur' : 'next';
+      return '<li class="' + side + ' ' + st + (gone ? ' gone' : '') + '">' + E(G.actorName(id)) + ' <b>' + (C.inits[id] ?? '') + '</b></li>';
+    }).join('');
+    return '<div class="init"><div class="init-lbl">Раунд ' + C.round + ' · порядок ходов по инициативе</div><ol>' + items + '</ol></div>';
+  }
+
+  /* Журнал боя по раундам и ходам. Старые раунды свёрнуты. */
+  function battleLog(C) {
+    const rounds = {};
+    let cur = null;
+    C.log.forEach((raw, idx) => {
+      const l = Array.isArray(raw) ? { k: 'line', c: raw[0], t: raw[1], r: 0 } : raw;
+      const r = l.r || 0;
+      if (!rounds[r]) rounds[r] = { order: '', turns: [], pre: [] };
+      const R = rounds[r];
+      if (l.k === 'round') { R.order = l.t; cur = null; return; }
+      if (l.k === 'turn') { cur = { who: l.who, t: l.t, lines: [] }; R.turns.push(cur); return; }
+      const li = '<li class="' + l.c + (idx >= G.UI.logSeen ? ' fresh' : '') + '">' + l.t + '</li>';
+      if (cur && cur === R.turns[R.turns.length - 1]) cur.lines.push(li); else R.pre.push(li);
+    });
+    const keys = Object.keys(rounds).map(Number).sort((a, b) => a - b);
+    const from = G.UI.fullLog ? 0 : Math.max(0, C.round - 1);
+    let h = '<div class="blog">';
+    const hidden = keys.filter(k => k < from && k > 0);
+    if (hidden.length) h += '<button class="link" data-a="fulllog">Показать раунды ' + hidden[0] + (hidden.length > 1 ? '–' + hidden[hidden.length - 1] : '') + '</button>';
+    keys.filter(k => k >= from || k === 0 && from <= 1).forEach(k => {
+      const R = rounds[k];
+      if (k === 0) { if (R.pre.length) h += '<ul class="bl-pre">' + R.pre.join('') + '</ul>'; return; }
+      h += '<section class="rnd"><div class="rnd-h"><b>Раунд ' + k + '</b><span>' + E(R.order) + '</span></div>';
+      if (R.pre.length) h += '<ul class="bl-pre">' + R.pre.join('') + '</ul>';
+      R.turns.forEach(t => {
+        h += '<div class="tb ' + t.who + '"><div class="tb-h">' + E(t.t) + '</div>' + (t.lines.length ? '<ul>' + t.lines.join('') + '</ul>' : '') + '</div>';
+      });
+      h += '</section>';
+    });
+    return h + '</div>';
+  }
+
   function combatHTML() {
     const S = G.S, C = S.combat, h = S.hero, E2 = G.ENC[C.id];
+    if (!C.order) { C.order = ['hero']; C.idx = 0; C.inits = {}; }
     let out = eyebrow() + '<h1>' + E(G.val(E2.title) || 'Бой') + '</h1>' + notes();
     out += '<div class="foes">' + C.enemies.map(e => {
       const sel = e.uid === C.target && !e.out;
@@ -112,8 +158,7 @@
     if (C.sw) me.push('духовное оружие');
     out += '<div class="me">Вы: КД ' + (G.ac() + (C.conc === 'shield_of_faith' ? 2 : 0)) + (me.length ? ' · ' + me.join(' · ') : '') +
       (C.comp ? ' · ' + E(G.compDef().short) + ': ' + (C.comp.down ? 'без сознания' : G.compHp() + ' хитов') : '') + '</div>';
-    const shown = C.log.slice(-10), start = C.log.length - shown.length;
-    out += '<ol class="log">' + shown.map((l, i) => '<li class="' + l[0] + (start + i >= G.UI.logSeen ? ' fresh' : '') + '">' + l[1] + '</li>').join('') + '</ol>';
+    out += initTracker(C) + battleLog(C);
     G.UI.logSeen = C.log.length;
 
     if (C.over) {
@@ -162,7 +207,7 @@
       if (h.cls === 'wizard') spells += '<label class="tog"><input type="checkbox" id="shieldAuto" data-a="shieldtoggle"' + (h.shieldAuto ? ' checked' : '') + '> Щит: ставить автоматически при попадании (' + (h.res.freeShield ? h.res.freeShield + ' заряда посоха, ' : '') + 'ячейки 1-го ур.)</label>';
       if (h.cls === 'cleric' && C.comp) spells += '<label class="tog"><input type="checkbox" id="healComp" data-a="healcomp"' + (G.UI.healComp ? ' checked' : '') + '> Лечить напарника, а не себя</label>';
     }
-    const status = 'Ход ' + C.round + ' · действие ' + (T.action ? '●' : '○') + ' · бонус ' + (T.bonus ? '●' : '○');
+    const status = 'Раунд ' + C.round + ' · ваш ход · действие ' + (T.action ? '●' : '○') + ' · бонус ' + (T.bonus ? '●' : '○');
     out += '<div class="turn">' + status + '</div><div class="acts">' + acts + '</div>' + spells +
       '<div class="row wrap">' +
       '<label class="tog"><input type="checkbox" id="nonlethal" data-a="nonlethal"' + (C.nonlethal ? ' checked' : '') + '> Бить не насмерть (взять в плен)</label>' +
@@ -427,6 +472,7 @@
       case 'flee': return G.act.flee();
       case 'cast': return G.act.cast(arg);
       case 'endturn': return G.act.end();
+      case 'fulllog': G.UI.fullLog = true; return G.render();
     }
   });
   document.addEventListener('change', ev => {

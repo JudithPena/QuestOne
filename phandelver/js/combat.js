@@ -29,70 +29,120 @@
       }
     });
     const C = S.combat = {
-      id: encId, enemies, round: 1, log: [], over: null, target: enemies[0].uid,
+      id: encId, enemies, round: 0, log: [], over: null, target: enemies[0].uid, order: [], idx: 0, inits: {},
       turn: { action: 1, bonus: 1, surged: false, sneak: false, aim: false },
       hero: { down: false }, comp: S.comp ? { down: G.compHp() <= 0 } : null,
       conc: null, sw: false, nonlethal: false, marked: {}, shieldUp: false, uncanny: false, protectUsed: false,
       canFlee: !!E.canFlee, captured: 0, fled: [], acted: {}
     };
     G.UI.logSeen = 0;
+    G.UI.fullLog = false;
     S.st.fights++;
     const intro = G.val(E.intro);
     if (intro) log('sys', intro);
     log('sys', 'Бой! Противники: ' + enemies.map(e => e.name).join(', ') + '.');
     const sur = G.val(E.surprise);
     if (sur === 'enemy') {
-      log('bad', 'Вас застали врасплох: первый раунд вы пропускаете.');
       C.hero.surprised = true;
-      enemyPhase();
-      C.hero.surprised = false;
-      if (!checkEnd()) newRound();
+      log('bad', 'Вас застали врасплох: в первом раунде вы не успеете ничего сделать.');
     } else if (sur === 'hero') {
       enemies.forEach(e => { e.st.surprised = true; });
       log('good', 'Враги застигнуты врасплох: в первом раунде они не действуют.');
-    } else {
-      const hi = R(20) + G.mod('dex');
-      const ei = R(20) + Math.max(...enemies.map(e => G.MONSTERS[e.k].init || 0));
-      if (ei > hi) { log('sys', 'Инициатива: ' + hi + ' против ' + ei + '. Враги ходят первыми.'); enemyPhase(); if (!checkEnd()) newRound(); }
-      else log('sys', 'Инициатива: ' + hi + ' против ' + ei + '. Вы ходите первыми.');
     }
+    newRound();
+    advance();
     G.save();
     G.render(true);
   };
 
-  function log(cls, t) { G.S.combat.log.push([cls, t]); }
+  /* Журнал боя: строки привязаны к раунду; заголовки раундов и ходов — отдельные записи */
+  function log(cls, t) { const C = G.S.combat; C.log.push({ k: 'line', c: cls, t, r: C.round }); }
+  function logRound(t) { const C = G.S.combat; C.log.push({ k: 'round', r: C.round, t }); }
+  function logTurn(who, t) { const C = G.S.combat; C.log.push({ k: 'turn', r: C.round, who, t }); }
+  const heroHpTag = () => ' (у вас ' + G.S.hero.hp + '/' + G.maxHp() + ')';
+  const compHpTag = () => ' (у ' + G.compDef().short + ' ' + G.compHp() + '/' + G.compDef().hp + ')';
   const alive = () => G.S.combat.enemies.filter(e => !e.out);
   const byUid = u => G.S.combat.enemies.find(e => e.uid === u);
   const tgt = () => { const C = G.S.combat; let t = byUid(C.target); if (!t || t.out) { t = alive()[0]; if (t) C.target = t.uid; } return t; };
   const incap = e => e.st.sleep || e.st.held || e.st.turned;
 
-  /* Новый раунд: сбрасываем ход героя. Если герой без сознания или парализован,
-     его ход пропускается, и раунд прокручивается дальше, пока бой не закончится
-     или герой снова не сможет действовать. */
+  /* ---------- раунды и инициатива ----------
+     В начале каждого раунда все участники бросают к20 + Ловкость.
+     Ходы идут по убыванию; при равенстве первым ходит герой, затем напарник. */
   function newRound() {
+    const S = G.S, C = S.combat;
+    C.round++;
+    C.uncanny = false; C.protectUsed = false;
+    if (C.round > 1) C.hero.surprised = false;
+    const list = [];
+    let hr = R(20);
+    if (S.hero.race === 'halfling' && hr === 1) hr = R(20);
+    list.push({ id: 'hero', name: 'Вы', init: hr + G.mod('dex'), pri: 2 });
+    if (C.comp) list.push({ id: 'comp', name: G.compDef().short, init: R(20) + (S.comp === 'droop' ? 2 : 0), pri: 1 });
+    alive().forEach(e => list.push({ id: e.uid, name: e.name, init: R(20) + (G.MONSTERS[e.k].init || 0), pri: 0 }));
+    list.sort((a, b) => b.init - a.init || b.pri - a.pri);
+    C.order = list.map(x => x.id);
+    C.inits = {};
+    list.forEach(x => { C.inits[x.id] = x.init; });
+    C.idx = 0;
+    logRound(list.map(x => x.name + ' ' + x.init).join(' → '));
+  }
+  const actorName = id => (id === 'hero' ? 'Вы' : id === 'comp' ? (G.compDef() ? G.compDef().short : 'Напарник') : (byUid(id) || {}).name || '?');
+  G.actorName = actorName;
+
+  /* Прокручивает ходы по порядку инициативы, пока не наступит ход героя
+     (тогда ждём нажатия кнопки) или бой не закончится. */
+  function advance() {
     const C = G.S.combat;
-    for (let guard = 0; guard < 40; guard++) {
-      C.round++;
-      C.turn = { action: 1, bonus: 1, sneak: false, aim: false };
-      C.shieldUp = false; C.uncanny = false; C.protectUsed = false; C.dodge = false;
-      C.hero.hidden = false;
-      if (C.hero.invis > 0) C.hero.invis--;
-      if (C.hero.prone && !C.hero.down) { C.hero.prone = false; log('sys', 'Вы поднимаетесь на ноги.'); }
-      if (C.hero.ash && !C.hero.down) { const sv = R(20) + G.saveBonus('con'); if (sv >= 10) { C.hero.ash = false; log('good', 'Вы откашливаетесь от пепла (спасбросок ' + sv + ').'); } }
-      if (C.hero.restrained && !C.hero.down) { const sv = R(20) + Math.max(G.skillBonus('athletics'), G.skillBonus('acrobatics')); if (sv >= 12) { C.hero.restrained = false; log('good', 'Вы вырываетесь из паутины (' + sv + ').'); } else log('bad', 'Паутина держит крепко (' + sv + ').'); }
-      let skip = false;
-      if (C.hero.down) {
-        if (!C.comp || C.comp.down) return;
-        log('sys', 'Вы лежите без сознания. ' + G.compDef().short + ' сражается один.');
-        skip = true;
-      } else if (C.hero.held) {
-        const sv = R(20) + G.saveBonus('wis');
-        if (sv >= 12 || C.hero.held <= 1) { C.hero.held = 0; log('good', 'Вы сбрасываете паралич (спасбросок ' + sv + ').'); }
-        else { C.hero.held--; log('bad', 'Вы парализованы и пропускаете ход (спасбросок ' + sv + ').'); skip = true; }
+    for (let guard = 0; guard < 400; guard++) {
+      if (checkEnd()) return;
+      if (C.idx >= C.order.length) {
+        endOfRound();
+        if (checkEnd()) return;
+        newRound();
+        continue;
       }
-      if (!skip) return;
-      compTurn(); if (checkEnd()) return;
-      enemyPhase(); if (checkEnd()) return;
+      const id = C.order[C.idx];
+      if (id === 'hero') {
+        if (startHeroTurn()) return;
+        C.idx++;
+        continue;
+      }
+      if (id === 'comp') compTurn();
+      else { const e = byUid(id); if (e && !e.out) enemyTurn(e); }
+      C.idx++;
+    }
+  }
+
+  /* Начало хода героя: эффекты «до начала вашего хода» заканчиваются, проверяем,
+     может ли он действовать. true — ждём действий игрока. */
+  function startHeroTurn() {
+    const S = G.S, C = S.combat;
+    logTurn('hero', 'Ваш ход');
+    C.turn = { action: 1, bonus: 1, sneak: false, aim: false };
+    C.shieldUp = false; C.dodge = false; C.hero.hidden = false;
+    if (C.hero.invis > 0) C.hero.invis--;
+    if (C.hero.down) { log('sys', 'Вы лежите без сознания.' + (C.comp && !C.comp.down ? ' ' + G.compDef().short + ' сражается один.' : '')); return false; }
+    if (C.hero.surprised && C.round === 1) { log('bad', 'Вы застигнуты врасплох и не успеваете действовать.'); return false; }
+    if (C.hero.prone) { C.hero.prone = false; log('sys', 'Вы поднимаетесь на ноги.'); }
+    if (C.hero.ash) { const sv = R(20) + G.saveBonus('con'); if (sv >= 10) { C.hero.ash = false; log('good', 'Вы откашливаетесь от пепла (спасбросок ' + sv + ').'); } else log('bad', 'Пепел всё ещё душит вас (спасбросок ' + sv + ').'); }
+    if (C.hero.restrained) { const sv = R(20) + Math.max(G.skillBonus('athletics'), G.skillBonus('acrobatics')); if (sv >= 12) { C.hero.restrained = false; log('good', 'Вы вырываетесь из паутины (' + sv + ').'); } else log('bad', 'Паутина держит крепко (' + sv + ').'); }
+    if (C.hero.held) {
+      const sv = R(20) + G.saveBonus('wis');
+      if (sv >= 12 || C.hero.held <= 1) { C.hero.held = 0; log('good', 'Вы сбрасываете паралич (спасбросок ' + sv + ').'); }
+      else { C.hero.held--; log('bad', 'Вы парализованы и пропускаете ход (спасбросок ' + sv + ').'); return false; }
+    }
+    return true;
+  }
+
+  function endOfRound() {
+    const C = G.S.combat, E = G.ENC[C.id];
+    if (E.lastFlees) {
+      const al = alive();
+      if (al.length === 1 && C.enemies.length >= 3 && C.enemies.filter(x => x.out).length >= 2 && !al[0].st.held && !al[0].st.sleep) {
+        al[0].out = 'fled'; C.fled.push(al[0].name);
+        log('sys', al[0].name + ' бросается наутёк!');
+      }
     }
   }
 
@@ -128,6 +178,7 @@
     } else if (e.fleeBelow && e.hp <= e.fleeBelow) {
       e.out = 'fled'; C.fled.push(e.name); note += ' Израненный, он бежит с поля боя!';
     }
+    if (!e.out) note += ' Осталось ' + e.hp + '/' + e.max + '.';
     if (e.out && e.leader) {
       const fl = C.enemies.filter(x => !x.out && x.follower);
       fl.forEach(x => { x.out = 'fled'; C.fled.push(x.name); });
@@ -223,10 +274,10 @@
     if (who === 'comp' && C.comp) {
       const was = C.comp.down;
       const got = G.healComp(amt); if (was) C.comp.down = false;
-      log('heal', 'Вы вливаете зелье в ' + G.compDef().short + ': +' + got + ' хитов.' + (was ? ' Он снова на ногах!' : ''));
+      log('heal', 'Вы вливаете зелье в ' + G.compDef().short + ': +' + got + ' хитов' + compHpTag() + '.' + (was ? ' Он снова на ногах!' : ''));
     } else {
       const got = G.heal(amt);
-      log('heal', 'Вы пьёте зелье лечения: +' + got + ' хитов.');
+      log('heal', 'Вы пьёте зелье лечения: +' + got + ' хитов' + heroHpTag() + '.');
     }
     afterHeroAct();
   };
@@ -244,7 +295,7 @@
     if (!C.turn.bonus || !h.res.wind) return;
     C.turn.bonus = 0; h.res.wind = false;
     const got = G.heal(R(10) + h.lvl);
-    log('heal', 'Второе дыхание: +' + got + ' хитов.');
+    log('heal', 'Второе дыхание: +' + got + ' хитов' + heroHpTag() + '.');
     G.save(); G.render();
     maybeAutoEnd();
   };
@@ -291,7 +342,7 @@
       const got = G.heal(give);
       let rest = pool - got, cg = 0;
       if (C.comp && rest > 0) { const was = C.comp.down; cg = G.healComp(Math.min(rest, Math.floor(G.compDef().hp / 2))); if (was && cg) C.comp.down = false; }
-      log('heal', 'Сохранение жизни: вы +' + got + (C.comp ? ', ' + G.compDef().short + ' +' + cg : '') + ' хитов.');
+      log('heal', 'Сохранение жизни: вы +' + got + (C.comp ? ', ' + G.compDef().short + ' +' + cg : '') + ' хитов' + heroHpTag() + '.');
     }
     afterHeroAct();
   };
@@ -392,18 +443,17 @@
       if (sp.both) {
         const g1 = G.heal(base); let g2 = 0;
         if (C.comp) { const was = C.comp.down; g2 = G.healComp(base); if (was && g2) C.comp.down = false; }
-        log('heal', sp.name + ': вы +' + g1 + (C.comp ? ', ' + G.compDef().short + ' +' + g2 : '') + '.');
+        log('heal', sp.name + ': вы +' + g1 + (C.comp ? ', ' + G.compDef().short + ' +' + g2 : '') + heroHpTag() + '.');
       } else if (toComp) {
         const was = C.comp.down; const g = G.healComp(base); if (was && g) C.comp.down = false;
-        log('heal', sp.name + ' → ' + G.compDef().short + ': +' + g + ' хитов.' + (was ? ' Снова в строю!' : ''));
-      } else { const g = G.heal(base); log('heal', sp.name + ': +' + g + ' хитов.'); }
+        log('heal', sp.name + ' → ' + G.compDef().short + ': +' + g + ' хитов' + compHpTag() + '.' + (was ? ' Снова в строю!' : ''));
+      } else { const g = G.heal(base); log('heal', sp.name + ': +' + g + ' хитов' + heroHpTag() + '.'); }
     } else if (id === 'bless') {
       log('good', 'Благословение: вы' + (C.comp ? ' и ' + G.compDef().short : '') + ' получаете +1к4 к атакам и спасброскам.');
     } else if (id === 'shield_of_faith') {
       log('good', 'Щит веры: мерцающее поле, +2 к КД.');
     } else if (id === 'spirit_guardians') {
-      log('good', 'Духовные стражи кружат вокруг вас сияющими тенями.');
-      spiritGuardians();
+      log('good', 'Духовные стражи кружат вокруг вас сияющими тенями. Каждый враг получает урон в начале своего хода.');
     } else if (id === 'spiritual_weapon') {
       C.sw = true;
       log('good', 'Над полем боя возникает призрачный молот.');
@@ -439,16 +489,6 @@
     const C = G.S.combat; if (!C.sw || !C.turn.bonus) return;
     C.turn.bonus = 0; swStrike(); G.save(); G.render(); maybeAutoEnd();
   };
-  function spiritGuardians() {
-    const dc = G.spellDC();
-    alive().forEach(x => {
-      const sv = R(20) + (G.MONSTERS[x.k].wis || 0);
-      const dm = D(3, 8), got = sv >= dc ? Math.floor(dm / 2) : dm;
-      const [amt, note] = dmgEnemy(x, got, 'radiant', 'spell');
-      log('hit', 'Стражи жгут ' + x.name + ': ' + amt + ' излучением.' + note);
-    });
-  }
-
   G.act.scroll = id => {
     const S = G.S, C = S.combat;
     if (!C.turn.action || !G.has(id)) return;
@@ -505,24 +545,21 @@
   }
 
   function afterHeroAct(force) {
-    const S = G.S, C = S.combat;
+    const C = G.S.combat;
     if (checkEnd()) { G.save(); G.render(); return; }
     if (!force && heroCanStillAct()) { G.save(); G.render(); return; }
-    compTurn();
-    if (checkEnd()) { G.save(); G.render(); return; }
-    if (C.conc === 'spirit_guardians') { spiritGuardians(); if (checkEnd()) { G.save(); G.render(); return; } }
-    enemyPhase();
-    if (checkEnd()) { G.save(); G.render(); return; }
-    newRound();
-    if (checkEnd()) { G.save(); G.render(); return; }
+    C.idx++;
+    advance();
     G.save(); G.render();
   }
 
   /* ---------- напарник ---------- */
   function compTurn() {
     const S = G.S, C = S.combat;
-    if (!C.comp || C.comp.down) return;
+    if (!C.comp) return;
     const d = G.compDef();
+    logTurn('comp', 'Ход: ' + d.short);
+    if (C.comp.down) { log('sys', d.short + ' лежит без сознания.'); return; }
     if (d.coward && R(2) === 1) { log('ally', d.short + ' прячется за камнем и дрожит.'); return; }
     const e = tgt(); if (!e) return;
     let a = R(20), b = R(20);
@@ -533,39 +570,36 @@
     const bless = C.conc === 'bless' ? R(4) : 0;
     const tot = dd + d.atk.hit + bless;
     const head = d.short + ' (' + d.atk.n + ') → ' + e.name + ': ' + dd + F(d.atk.hit) + (bless ? ' +' + bless : '') + ' = ' + tot;
-    if (dd === 1 || (tot < e.ac && dd !== 20)) { log('ally miss', head + ' — промах.'); return; }
+    if (dd === 1 || (tot < e.ac && dd !== 20)) { log('miss', head + ' против КД ' + e.ac + ' — промах.'); return; }
     const [amt, note] = dmgEnemy(e, D(d.atk.dice[0] * (dd === 20 ? 2 : 1), d.atk.dice[1]) + d.atk.mod, d.atk.type, 'melee');
     delete C.marked[e.uid];
-    log('ally', head + ' — попадание, ' + amt + '.' + note);
+    log('ally', head + ' — попадание! Урон ' + amt + ' ' + TYPE_RU[d.atk.type] + '.' + note);
   }
 
   /* ---------- враги ---------- */
-  function enemyPhase() {
+  function enemyTurn(e) {
     const S = G.S, C = S.combat;
-    for (const e of C.enemies) {
-      if (e.out) continue;
-      C.acted[e.uid] = true;
-      if (e.st.surprised) { e.st.surprised = false; continue; }
-      if (e.st.sleep) { log('sys', e.name + ' спит.'); continue; }
-      if (e.st.held) {
-        const m = G.MONSTERS[e.k];
-        const sv = R(20) + (m.wis || 0);
-        if (sv >= G.spellDC()) { e.st.held = false; C.conc = null; log('sys', e.name + ' стряхивает паралич (спасбросок ' + sv + ').'); }
-        else log('sys', e.name + ' парализован и не может двигаться.');
-        continue;
-      }
-      if (e.st.prone) { e.st.prone = false; }
-      enemyAct(e);
-      if (heroAndCompDown()) return;
+    logTurn('enemy', 'Ход: ' + e.name);
+    C.acted[e.uid] = true;
+    /* Духовные стражи жгут врага в начале его хода */
+    if (C.conc === 'spirit_guardians') {
+      const sv = R(20) + (G.MONSTERS[e.k].wis || 0);
+      const dm = D(3, 8), got = sv >= G.spellDC() ? Math.floor(dm / 2) : dm;
+      const [amt, note] = dmgEnemy(e, got, 'radiant', 'spell');
+      log('hit', 'Духовные стражи жгут ' + e.name + ': ' + amt + ' излучением.' + note);
+      if (e.out) return;
     }
-    const E = G.ENC[C.id];
-    if (E.lastFlees) {
-      const al = alive();
-      if (al.length === 1 && C.enemies.length >= 3 && C.enemies.filter(x => x.out).length >= 2 && !al[0].st.held && !al[0].st.sleep) {
-        al[0].out = 'fled'; C.fled.push(al[0].name);
-        log('sys', al[0].name + ' бросается наутёк!');
-      }
+    if (e.st.surprised) { e.st.surprised = false; log('sys', e.name + ' застигнут врасплох и не успевает действовать.'); return; }
+    if (e.st.sleep) { log('sys', e.name + ' спит.'); return; }
+    if (e.st.held) {
+      const m = G.MONSTERS[e.k];
+      const sv = R(20) + (m.wis || 0);
+      if (sv >= G.spellDC()) { e.st.held = false; C.conc = null; log('sys', e.name + ' стряхивает паралич (спасбросок ' + sv + ').'); }
+      else log('sys', e.name + ' парализован и не может двигаться.');
+      return;
     }
+    if (e.st.prone) { e.st.prone = false; log('sys', e.name + ' поднимается на ноги.'); }
+    enemyAct(e);
   }
 
   function heroAndCompDown() {
