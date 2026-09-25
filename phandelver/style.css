@@ -282,3 +282,43 @@ h3 { font-size: 21px; margin: 20px 0 8px; }
 .turn.waiting { color: var(--blood); animation: fx-wait 1s ease-in-out infinite alternate; }
 @keyframes fx-wait { from { opacity: .55; } to { opacity: 1; } }
 .foe.acting { border-color: var(--blood); box-shadow: 0 0 0 1px var(--blood) inset, 0 0 14px rgba(216, 90, 73, .35); }
+
+/* ---------- фоны локаций ---------- */
+body { background-image: none; }
+#bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.bg-l { position: absolute; inset: 0; opacity: 0; transition: opacity 1.1s ease; }
+.bg-l.on { opacity: 1; }
+.bg-l svg { position: absolute; left: 0; width: 100%; }
+.bg-bottom { bottom: 0; height: 46vh; }
+.bg-top { top: 0; height: 24vh; }
+.bg-l::after { content: ''; position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, .45)); }
+.stars circle { fill: #dfe6f5; opacity: .5; animation: bg-twinkle 3.5s ease-in-out infinite alternate; }
+@keyframes bg-twinkle { from { opacity: .15; } to { opacity: .7; } }
+.windows rect { opacity: .28; animation: bg-flicker 4s ease-in-out infinite alternate; }
+.windows rect:nth-child(2n) { animation-duration: 5.5s; }
+@keyframes bg-flicker { 0% { opacity: .3; } 40% { opacity: .5; } 55% { opacity: .36; } 100% { opacity: .55; } }
+.mist { animation: bg-mist 18s ease-in-out infinite alternate; }
+@keyframes bg-mist { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
+.drips circle { fill: #a9c79a; opacity: 0; animation: bg-drip 5s linear infinite; }
+.drips circle:nth-child(2) { animation-delay: 1.7s; } .drips circle:nth-child(3) { animation-delay: 3.3s; }
+@keyframes bg-drip { 0% { opacity: 0; transform: translateY(0); } 10% { opacity: .6; } 60% { opacity: .5; transform: translateY(120px); } 61%, 100% { opacity: 0; transform: translateY(120px); } }
+.crystals { opacity: .35; animation: bg-glow 4s ease-in-out infinite alternate; }
+@keyframes bg-glow { from { opacity: .22; } to { opacity: .45; } }
+.bg-dungeon { animation: bg-torch 2.8s ease-in-out infinite alternate; }
+@keyframes bg-torch { from { filter: brightness(.92); } to { filter: brightness(1.08); } }
+
+/* ---------- переходы между сценами ---------- */
+main.wrap { transition: opacity .2s ease, transform .2s ease, filter .2s ease; }
+main.leaving { opacity: 0; transform: translateY(-6px); filter: blur(1.5px); }
+body::after { content: ''; position: fixed; inset: 0; z-index: 4; pointer-events: none; background: radial-gradient(120% 100% at 50% 40%, rgba(0, 0, 0, .35), rgba(0, 0, 0, .8)); opacity: 0; transition: opacity .45s ease; }
+body.veiled::after { opacity: 1; transition-duration: .2s; }
+main.entering > * { animation: sc-in .5s ease both; }
+main.entering > *:nth-child(2) { animation-delay: .06s; }
+main.entering > *:nth-child(3) { animation-delay: .12s; }
+main.entering > *:nth-child(4) { animation-delay: .18s; }
+main.entering > *:nth-child(5) { animation-delay: .24s; }
+main.entering > *:nth-child(6) { animation-delay: .30s; }
+main.entering > *:nth-child(n+7) { animation-delay: .36s; }
+@keyframes sc-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.bg-l svg { filter: brightness(1.4); }
+.windows rect { opacity: .45; }

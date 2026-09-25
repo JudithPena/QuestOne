@@ -391,9 +391,33 @@
   }
 
   /* ---------- главный рендер ---------- */
+  /* Смена сцены (или начало/конец боя) идёт через короткое затемнение:
+     старый текст гаснет, затем новый проявляется снизу вверх. Остальные перерисовки — мгновенные. */
+  G.TRANS = 220;
+  let lastKey = null, pending = false, pendingScroll = false;
+  const viewKey = () => (!G.S ? (G.UI.creating ? 'create' : 'title') : G.S.combat ? 'c:' + G.S.combat.id + ':' + G.S.st.fights : 's:' + G.S.scene);
   G.render = (scrollTop) => {
+    if (pending) { pendingScroll = pendingScroll || !!scrollTop; return; }
+    const key = viewKey();
+    if (G.TRANS && lastKey !== null && key !== lastKey) {
+      pending = true; pendingScroll = !!scrollTop;
+      const m = app().querySelector('main');
+      if (m) m.classList.add('leaving');
+      document.body.classList.add('veiled');
+      setTimeout(() => {
+        pending = false;
+        doRender(pendingScroll, true);
+        requestAnimationFrame(() => document.body.classList.remove('veiled'));
+      }, G.TRANS);
+      return;
+    }
+    doRender(scrollTop, false);
+  };
+  function doRender(scrollTop, entering) {
+    lastKey = viewKey();
     const S = G.S;
-    if (!S) { app().innerHTML = G.UI.creating ? createHTML() : titleHTML(); bindCreate(); return; }
+    G.setBg && G.setBg(G.bgTheme(S));
+    if (!S) { app().innerHTML = G.UI.creating ? createHTML() : titleHTML(); bindCreate(); markEnter(entering); return; }
     document.body.dataset.ch = S.chapter;
     let body = S.combat ? combatHTML() : sceneHTML();
     let sheet = '';
@@ -407,8 +431,15 @@
     else if (G.UI.sheet === 'shop') sheet = shopSheet();
     app().innerHTML = header() + '<main class="wrap">' + body + '</main>' + (sheet ? '<div class="overlay">' + sheet + '</div>' : '');
     if (scrollTop) window.scrollTo(0, 0);
+    markEnter(entering);
     playFX();
-  };
+  }
+  function markEnter(on) {
+    const m = app().querySelector('main');
+    if (!on || !m) return;
+    m.classList.add('entering');
+    setTimeout(() => m.classList.remove('entering'), 1200);
+  }
 
   /* ---------- анимации: попадание — тряска, промах — разворот, урон по герою — красные цифры ---------- */
   function restart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
