@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#1e2a20"/>
+      <stop offset="1" stop-color="#0c100d"/>
+    </radialGradient>
+    <linearGradient id="cu" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9a766"/>
+      <stop offset="1" stop-color="#b8703a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- к20: шестиугольник с гранями -->
+  <g transform="translate(256 262)">
+    <polygon points="0,-178 154,-89 154,89 0,178 -154,89 -154,-89" fill="url(#cu)"/>
+    <polygon points="0,-118 102,58 -102,58" fill="#f3c48f" opacity=".55"/>
+    <g stroke="#6b3d17" stroke-width="7" stroke-linejoin="round" fill="none" opacity=".85">
+      <polygon points="0,-178 154,-89 154,89 0,178 -154,89 -154,-89"/>
+      <polygon points="0,-118 102,58 -102,58"/>
+      <path d="M0,-178 L0,-118 M154,-89 L102,58 M154,89 L102,58 M0,178 L102,58 M0,178 L-102,58 M-154,89 L-102,58 M-154,-89 L-102,58 M-154,-89 L0,-118 M154,-89 L0,-118"/>
+    </g>
+    <text x="0" y="36" text-anchor="middle" font-family="Georgia, 'DejaVu Serif', serif" font-weight="700" font-size="104" fill="#2a1606">20</text>
+  </g>
+</svg>
