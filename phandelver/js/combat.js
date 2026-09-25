@@ -164,6 +164,7 @@
       else note += ' Облако пепла, но вы задерживаете дыхание.';
     }
     e.hp = Math.max(0, e.hp - amt);
+    G.fx({ t: 'hit', uid: e.uid, n: amt });
     if (e.st.sleep && amt > 0) { e.st.sleep = false; note += ' Просыпается!'; }
     /* Стойкость нежити */
     if (e.hp <= 0 && m.fortitude !== undefined && type !== 'radiant' && !opt.crit && amt > 0) {
@@ -233,7 +234,7 @@
     const crit = r.d >= G.critMin() || e.st.held || (S.hero.cls === 'rogue' && S.hero.lvl >= 3 && e.st.surprised && r.d !== 1);
     const hit = r.d !== 1 && (r.d >= G.critMin() || r.total >= e.ac);
     let s = w.name + ' → ' + e.name + ': ' + (r.two ? '[' + r.a + '/' + r.b + '] ' : '') + r.d + F(w.hit) + (r.bless ? ' +' + r.bless + ' (благ.)' : '') + ' = ' + r.total + ' против КД ' + e.ac + (why.length ? ' (' + why.join(', ') + ')' : '');
-    if (!hit) { log('miss', s + ' — промах.'); return; }
+    if (!hit) { log('miss', s + ' — промах.'); G.fx({ t: 'miss', uid: e.uid }); return; }
     if (crit) S.st.crits++;
     let dice = w.dice[0] * (crit ? 2 : 1);
     let dmg = D(dice, w.dice[1]) + w.dmgMod;
@@ -331,7 +332,7 @@
       log('good', 'Вы поднимаете священный символ: «Изыди!»');
       alive().filter(e => G.MONSTERS[e.k].undead).forEach(e => {
         const r = R(20) + (G.MONSTERS[e.k].wis || 0);
-        if (r >= G.spellDC()) log('miss', e.name + ': спасбросок ' + r + ' против Сл ' + G.spellDC() + ' — выдерживает.');
+        if (r >= G.spellDC()) { log('miss', e.name + ': спасбросок ' + r + ' против Сл ' + G.spellDC() + ' — выдерживает.'); G.fx({ t: 'miss', uid: e.uid }); }
         else if (h.lvl >= 5 && G.MONSTERS[e.k].hp <= 13) { e.hp = 0; e.out = 'dead'; log('hit', e.name + ' рассыпается в прах!'); }
         else { e.st.turned = true; e.out = 'turned'; log('hit', e.name + ' в ужасе бежит от святого света.'); }
       });
@@ -393,7 +394,7 @@
       const r = atkRoll(hitB, adv, dis);
       const crit = r.d === 20 || e.st.held;
       const s = sp.name + ' → ' + e.name + ': ' + (r.two ? '[' + r.a + '/' + r.b + '] ' : '') + r.d + F(hitB) + ' = ' + r.total + ' против КД ' + e.ac + (why.length ? ' (' + why.join(', ') + ')' : '');
-      if (r.d === 1 || (r.total < e.ac && !crit)) log('miss', s + ' — промах.');
+      if (r.d === 1 || (r.total < e.ac && !crit)) { log('miss', s + ' — промах.'); G.fx({ t: 'miss', uid: e.uid }); }
       else {
         const dm = D(sp.dice[0] * scale * (crit ? 2 : 1), sp.dice[1]);
         const [amt, note] = dmgEnemy(e, dm, sp.type, 'spell');
@@ -410,7 +411,7 @@
         const sv = R(20) + (sp.save === 'dex' ? (m.dex || 0) : (m.wis || 0));
         const ok = sv >= dc;
         const got = ok ? (sp.half ? Math.floor(dm / 2) : 0) : dm;
-        if (!got) { log('miss', x.name + ': спасбросок ' + sv + ' — уклоняется.'); return; }
+        if (!got) { log('miss', x.name + ': спасбросок ' + sv + ' — уклоняется.'); G.fx({ t: 'miss', uid: x.uid }); return; }
         const [amt, note] = dmgEnemy(x, got, sp.type, 'spell');
         log('hit', x.name + ': спасбросок ' + sv + (ok ? ' — половина' : ' — провал') + ', урон ' + amt + ' ' + TYPE_RU[sp.type] + '.' + note);
       });
@@ -424,7 +425,7 @@
         const x = tgt(); if (!x) break;
         const { adv, dis } = heroAdvantage(x);
         const r = atkRoll(hitB, adv, dis);
-        if (r.d === 1 || (r.total < x.ac && r.d !== 20)) { log('miss', 'Луч ' + (i + 1) + ' → ' + x.name + ': ' + r.total + ' — промах.'); continue; }
+        if (r.d === 1 || (r.total < x.ac && r.d !== 20)) { log('miss', 'Луч ' + (i + 1) + ' → ' + x.name + ': ' + r.total + ' — промах.'); G.fx({ t: 'miss', uid: x.uid }); continue; }
         const [amt, note] = dmgEnemy(x, D(sp.dice[0] * (r.d === 20 ? 2 : 1), sp.dice[1]), sp.type, 'spell');
         log('hit', 'Луч ' + (i + 1) + ' → ' + x.name + ': ' + r.total + ' — попадание, ' + amt + ' ' + TYPE_RU[sp.type] + '.' + note);
       }
@@ -481,7 +482,7 @@
     const hitB = G.spellHit();
     const { adv } = heroAdvantage(e);
     const r = atkRoll(hitB, adv, false);
-    if (r.d === 1 || (r.total < e.ac && r.d !== 20)) { log('miss', 'Духовное оружие → ' + e.name + ': ' + r.total + ' — промах.'); return; }
+    if (r.d === 1 || (r.total < e.ac && r.d !== 20)) { log('miss', 'Духовное оружие → ' + e.name + ': ' + r.total + ' — промах.'); G.fx({ t: 'miss', uid: e.uid }); return; }
     const [amt, note] = dmgEnemy(e, D(r.d === 20 ? 2 : 1, 8) + G.spellMod(), 'force', 'spell');
     log('hit', 'Духовное оружие → ' + e.name + ': ' + r.total + ' — удар, ' + amt + ' силовым полем.' + note);
   }

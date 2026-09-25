@@ -141,7 +141,7 @@
     out += '<div class="foes">' + C.enemies.map(e => {
       const sel = e.uid === C.target && !e.out;
       const status = e.out ? { dead: 'повержен', captured: 'в плену', fled: 'сбежал', turned: 'бежит', surrender: 'сдался' }[e.out] : '';
-      return '<button class="foe' + (sel ? ' sel' : '') + (e.out ? ' out' : '') + '" data-a="tgt:' + e.uid + '"' + (e.out ? ' disabled' : '') + '>' +
+      return '<button class="foe' + (sel ? ' sel' : '') + (e.out ? ' out' : '') + '" data-uid="' + e.uid + '" data-a="tgt:' + e.uid + '"' + (e.out ? ' disabled' : '') + '>' +
         '<div class="foe-top"><b>' + E(e.name) + '</b><span class="n">' + (e.out ? status : e.hp + '/' + e.max) + '</span></div>' +
         '<div class="meter"><i style="width:' + (e.hp / e.max * 100) + '%"></i></div>' +
         '<div class="foe-meta">КД ' + e.ac + (C.marked[e.uid] ? ' · метка' : '') + statusChips(e.st, e.poisoned ? ['пьян'] : []) + '</div>' + traits(e) + '</button>';
@@ -403,7 +403,43 @@
     else if (G.UI.sheet === 'shop') sheet = shopSheet();
     app().innerHTML = header() + '<main class="wrap">' + body + '</main>' + (sheet ? '<div class="overlay">' + sheet + '</div>' : '');
     if (scrollTop) window.scrollTo(0, 0);
+    playFX();
   };
+
+  /* ---------- анимации: попадание — тряска, промах — разворот, урон по герою — красные цифры ---------- */
+  function restart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function playFX() {
+    const q = G.FX.splice(0);
+    let t = 0, prev = null;
+    q.forEach(f => {
+      if (f.t === 'dmg') t += prev && prev !== 'dmg' ? 450 : 0;
+      setTimeout(() => (f.t === 'dmg' ? popDamage(f.n) : foeFX(f)), t);
+      t += f.t === 'dmg' ? 750 : 300;
+      prev = f.t;
+    });
+  }
+  function foeFX(f) {
+    const el = document.querySelector('.foe[data-uid="' + f.uid + '"]');
+    if (!el) return;
+    restart(el, f.t === 'hit' ? 'fx-hit' : 'fx-miss');
+    const n = document.createElement('span');
+    n.className = 'fx-num ' + f.t;
+    n.textContent = f.t === 'hit' ? '−' + f.n : 'мимо';
+    el.appendChild(n);
+    setTimeout(() => n.remove(), 900);
+  }
+  function popDamage(n) {
+    let box = document.getElementById('fx');
+    if (!box) { box = document.createElement('div'); box.id = 'fx'; box.setAttribute('aria-hidden', 'true'); document.body.appendChild(box); }
+    const el = document.createElement('div');
+    el.className = 'dmg-pop';
+    el.textContent = '−' + n;
+    el.style.setProperty('--dx', (Math.random() * 60 - 30).toFixed(0) + 'px');
+    box.appendChild(el);
+    setTimeout(() => el.remove(), 1100);
+    const hp = document.querySelector('.bar .hp');
+    if (hp) restart(hp, 'fx-hurt');
+  }
 
   function bindCreate() {
     const inp = document.getElementById('heroName');

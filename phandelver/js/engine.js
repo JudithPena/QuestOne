@@ -166,7 +166,10 @@
   };
   G.clue = t => { if (!G.S.clues.includes(t)) { G.S.clues.push(t); G.note('В журнал: ' + t, 'clue'); } };
   G.heal = n => { const h = G.S.hero, b = h.hp; h.hp = Math.min(G.maxHp(), h.hp + n); return h.hp - b; };
-  G.hurt = n => { const h = G.S.hero; h.hp = Math.max(0, h.hp - n); return n; };
+  G.hurt = n => { const h = G.S.hero; h.hp = Math.max(0, h.hp - n); if (n > 0) G.fx({ t: 'dmg', n }); return n; };
+  /* Очередь эффектов для экрана: попадания, промахи, урон по герою. Не сохраняется. */
+  G.FX = [];
+  G.fx = f => { G.FX.push(f); };
   G.compDef = () => {
     const S = G.S;
     if (!S.comp) return null;
