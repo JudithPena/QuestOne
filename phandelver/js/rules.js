@@ -184,6 +184,14 @@ window.G = window.G || {};
     elf_statuette: { name: 'Золотая статуэтка солнечного эльфа', use: 'oracle', text: 'Магия прорицания: один раз ответит на любой вопрос.' },
     brandy: { name: 'Дварфский бренди', use: 'brandy', text: 'Стакан восстанавливает 1 хит. Два за час — и вы пьяны.' },
     emerald_necklace: { name: 'Изумрудное ожерелье Мирны', use: 'story', text: 'Золотое ожерелье с изящным изумрудным кулоном. Стоит 200 зм.' },
+    boots: { name: 'Сапоги ходьбы и прыжков', use: 'equip', who: ['fighter', 'rogue', 'cleric', 'wizard'], text: 'Сапоги Тардена. Преимущество на проверки Атлетики и Акробатики.' },
+    gauntlets: { name: 'Рукавицы силы огра', use: 'equip', who: ['fighter', 'rogue', 'cleric', 'wizard'], text: 'Сила становится 19.' },
+    wand_mm: { name: 'Палочка волшебных стрел', use: 'wand', text: 'В бою действием: три дротика по 1к4+1, всегда попадают. 7 зарядов.' },
+    potion_vitality: { name: 'Зелье жизненной силы', use: 'vitality', text: 'Полностью лечит и возвращает все кости хитов.' },
+    lightbringer: { name: 'Светоносная, булава +1', use: 'equip', who: ['cleric'], text: 'Булава жрецов Латандера. +1 к атаке и урону, +1к6 излучением по нежити. Светится, как факел.' },
+    dragonguard: { name: 'Драконий Страж, нагрудник +1', use: 'equip', who: ['fighter', 'cleric'], text: 'Нагрудник с золотым драконом. КД 15 + Ловкость (макс. 2), преимущество против дыхания драконов.' },
+    spider_staff: { name: 'Посох паука', use: 'equip', who: ['wizard'], text: 'Чёрный посох Неззнара. Удар: 1к6 + 1к6 ядом, магическое оружие.' },
+    mormesk_map: { name: 'Старая карта из книги Мормеска', use: 'story', text: 'Карта, пришитая к обложке старой книги. Ведёт к неведомому подземелью — следующему приключению.' },
     goblin_note: { name: 'Рисунок с награде', use: 'story', text: '«25 золотых за этого» — и ваш портрет. Внизу знак чёрного паука.' }
   };
 
@@ -294,6 +302,36 @@ window.G = window.G || {};
     doppelganger: {
       name: 'Вайерит', ac: 14, hp: 52, dex: 4, init: 4, wis: 1, pp: 11, multi: 2, surprise: [3, 6],
       atk: [{ n: 'удар', hit: 6, dice: [1, 6], mod: 4, type: 'bludgeoning' }]
+    },
+    jelly: {
+      name: 'Золотистый студень', ac: 8, hp: 45, dex: -2, init: -2, wis: -2, pp: 8, immune: ['lightning'],
+      atk: [{ n: 'ложноножка', hit: 4, dice: [2, 6], mod: 2, type: 'bludgeoning', plus: [1, 6, 'acid'] }]
+    },
+    flameskull: {
+      name: 'Пылающий череп', ac: 13, hp: 40, dex: 3, init: 3, wis: 0, undead: true, pp: 12, immune: ['fire', 'cold', 'poison'], multi: 2,
+      atk: [{ n: 'огненный луч', hit: 5, dice: [3, 6], mod: 0, type: 'fire' }],
+      special: [{ w: 35, n: 'Огненный шар', save: 'dex', dc: 13, dice: [6, 6], type: 'fire', half: true, uses: 1, all: true }]
+    },
+    wraith: {
+      name: 'Призрак Мормеска', ac: 13, hp: 67, dex: 3, init: 3, wis: 1, undead: true, pp: 12, resistMundane: true, immune: ['necrotic', 'poison'], resist: ['cold', 'fire', 'lightning', 'acid'],
+      atk: [{ n: 'вытягивание жизни', hit: 6, dice: [4, 8], mod: 3, type: 'necrotic' }]
+    },
+    spectator: {
+      name: 'Наблюдатель', ac: 14, hp: 39, dex: 2, init: 2, wis: 2, pp: 16, multi: 1,
+      atk: [{ n: 'укус', hit: 1, dice: [1, 6], mod: -1, type: 'piercing' }],
+      special: [
+        { w: 40, n: 'Ранящий луч', save: 'con', dc: 13, dice: [3, 10], type: 'necrotic', half: true },
+        { w: 30, n: 'Парализующий луч', hold: true, save: 'con', dc: 13, uses: 2 }
+      ]
+    },
+    nezznar: {
+      name: 'Неззнар, Чёрный Паук', ac: 14, hp: 27, dex: 2, init: 2, wis: 1, humanoid: true, pp: 12, surrenderAt: 7,
+      atk: [{ n: 'посох паука', hit: 3, dice: [1, 6], mod: 0, type: 'bludgeoning', plus: [1, 6, 'poison'] }],
+      special: [
+        { w: 35, n: 'Волшебная стрела', auto: true, darts: 3, dice: [1, 4], mod: 1, type: 'force', uses: 3 },
+        { w: 25, n: 'Луч болезни', save: 'con', dc: 12, dice: [2, 8], type: 'poison', half: false, uses: 2 },
+        { w: 20, n: 'Внушение', hold: true, save: 'wis', dc: 12, uses: 1 }
+      ]
     },
     sildar: {
       name: 'Сильдар', ac: 16, hp: 27, dex: 0, humanoid: true,

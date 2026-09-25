@@ -196,6 +196,8 @@
     const [amt, note] = dmgEnemy(e, Math.max(1, dmg), w.type, 'melee', { magic: w.magic > 0, crit, hew: S.hero.equip.hew && S.hero.cls === 'fighter', max: w.dice[0] * (crit ? 2 : 1) * w.dice[1] + w.dmgMod });
     delete C.marked[e.uid];
     log('hit', s + (crit ? ' — КРИТ! ' : ' — попадание! ') + 'Урон ' + amt + ' ' + TYPE_RU[w.type] + extra + '.' + note);
+    if (w.undeadBonus && G.MONSTERS[e.k].undead && !e.out) { const [ua, un] = dmgEnemy(e, D(w.undeadBonus[0] * (crit ? 2 : 1), w.undeadBonus[1]), 'radiant', 'melee', { magic: true }); log('hit', 'Светоносная вспыхивает рассветом: ещё ' + ua + ' излучением.' + un); }
+    if (w.plusPoison && !e.out) { const [pa, pn] = dmgEnemy(e, D(w.plusPoison[0] * (crit ? 2 : 1), w.plusPoison[1]), 'poison', 'melee', { magic: true }); log('hit', 'Яд посоха: ещё ' + pa + '.' + pn); }
     if (S.hero.cls === 'cleric' && !C.turn.divine && !e.out) {
       C.turn.divine = true;
       const [ra, rn] = dmgEnemy(e, D(crit ? 2 : 1, 8), 'radiant', 'melee');
@@ -457,6 +459,18 @@
     G.act.cast(sp);
   };
 
+  G.act.wand = () => {
+    const S = G.S, C = S.combat, e = tgt();
+    if (!C.turn.action || !G.has('wand_mm') || !e) return;
+    if (S.f.wandCharges == null) S.f.wandCharges = 7;
+    if (S.f.wandCharges < 1) return;
+    C.turn.action = 0; S.f.wandCharges--;
+    let tot = 0; const parts = [];
+    for (let i = 0; i < 3; i++) { const d = R(4) + 1; tot += d; parts.push(d); }
+    const [amt, note] = dmgEnemy(e, tot, 'force', 'spell');
+    log('hit', 'Палочка волшебных стрел → ' + e.name + ': ' + parts.join(' + ') + ' = ' + amt + '. Зарядов: ' + S.f.wandCharges + '.' + note);
+    afterHeroAct();
+  };
   G.act.revive = () => {
     const S = G.S, C = S.combat;
     if (!C.turn.action || !C.comp || !C.comp.down || !G.has('scroll_revivify')) return;
@@ -623,6 +637,7 @@
     let extra = '';
     if (surpriseBonus) { const sb = D(surpriseBonus[0], surpriseBonus[1]); dmg += sb; extra = ' (+' + sb + ' внезапная атака)'; e.st.firstStrike = false; }
     const mm = G.MONSTERS[e.k];
+    if (atk.plus) { let pb = D(atk.plus[0], atk.plus[1]); if (who === 'hero' && atk.plus[2] === 'poison' && S.hero.race === 'dwarf') pb = Math.floor(pb / 2); dmg += pb; extra += ' (+' + pb + ' ' + TYPE_RU[atk.plus[2]] + ')'; }
     if (mm.martial && alive().length >= 2 && e.st.martialRound !== C.round) { e.st.martialRound = C.round; const mb = D(mm.martial[0], mm.martial[1]); dmg += mb; extra += ' (+' + mb + ' воинская выучка)'; }
     if (atk.poison) {
       const pd = D(atk.poison[0], atk.poison[1]);
@@ -703,8 +718,8 @@
       if (C.hero.down || C.hero.held) return enemyAttack(e, G.MONSTERS[e.k].atk[0], pickTarget());
       const r = R(20), adv = S.hero.race === 'elf' ? false : false;
       const bless = C.conc === 'bless' ? R(4) : 0;
-      const sv = r + G.saveBonus('wis') + bless;
-      if (sv >= sp.dc) log('miss', e.name + ': ' + sp.n + ' → вас. Спасбросок Мудрости ' + sv + ' против Сл ' + sp.dc + ' — вы сопротивляетесь.');
+      const sv = r + G.saveBonus(sp.save || 'wis') + bless;
+      if (sv >= sp.dc) log('miss', e.name + ': ' + sp.n + ' → вас. Спасбросок ' + G.ABIL[sp.save || 'wis'] + ' ' + sv + ' против Сл ' + sp.dc + ' — вы сопротивляетесь.');
       else { C.hero.held = 2; log('bad', e.name + ': ' + sp.n + ' → вас. Спасбросок ' + sv + ' — вы парализованы!'); }
       return;
     }

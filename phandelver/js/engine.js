@@ -51,6 +51,7 @@
     const h = G.S.hero, c = G.cls(), r = G.race();
     let v = c.base[ab] + ((r.abil && r.abil[ab]) || 0);
     if (h.lvl >= 4 && ab === c.primary) v += 2;
+    if (ab === 'str' && h.equip && h.equip.gauntlets) v = Math.max(v, 19);
     return Math.min(20, v);
   };
   G.mod = ab => Math.floor((G.score(ab) - 10) / 2);
@@ -78,7 +79,7 @@
     let ac;
     if (h.cls === 'wizard') ac = (h.mageArmor ? 13 : 10) + dex;
     else if (h.cls === 'rogue') ac = 12 + dex;
-    else ac = h.equip.armor === 'splint' ? 17 : c.armor.base;
+    else ac = Math.max(h.equip.armor === 'splint' ? 17 : c.armor.base, h.equip.dragonguard ? 15 + Math.min(2, dex) : 0);
     if (c.shield) ac += 2;
     if (h.equip.ring) ac += 1;
     return ac;
@@ -95,6 +96,9 @@
     if (h.cls === 'fighter' && h.equip.talon) { w.name = 'Коготь (длинный меч +1)'; w.magic = 1; }
     if (h.cls === 'fighter' && h.equip.hew) { w.name = 'Рассекатель (топор +1)'; w.magic = 1; }
     if (h.cls === 'wizard' && h.equip.staff) w.name = 'Посох защиты';
+    if (h.cls === 'cleric' && h.equip.lightbringer) { w.name = 'Светоносная (булава +1)'; w.magic = 1; w.undeadBonus = [1, 6]; }
+    if (h.cls === 'wizard' && h.equip.spiderStaff) { w.name = 'Посох паука'; w.magic = 1; w.plusPoison = [1, 6]; }
+    if (h.equip.flameBless && !w.magic) { w.magic = 1; w.name += ' (зелёное пламя)'; }
     w.hit = G.prof() + G.mod(w.abil) + w.magic;
     w.dmgMod = G.mod(w.abil) + w.bonusDmg + w.magic;
     return w;
@@ -223,7 +227,7 @@
       S.st.ok = (S.st.ok || 0) + 1;
       return cb(true, G.passive(spec.skill));
     }
-    const adv = !!G.val(spec.adv), dis = !!G.val(spec.dis);
+    const adv = !!G.val(spec.adv) || (S.hero.equip.boots && ['athletics', 'acrobatics'].includes(spec.skill)), dis = !!G.val(spec.dis);
     const guidance = S.hero.cls === 'cleric' && !spec.save;
     const el = document.getElementById('dice');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -356,6 +360,7 @@
     h.mageArmor = false;
     G.restoreRes('long');
     G.morningArmor();
+    if (S.f.wandCharges != null) S.f.wandCharges = Math.min(7, S.f.wandCharges + G.rnd(6) + 1);
     for (const id in S.compHp) S.compHp[id] = G.COMPANIONS[id].hp;
     G.note('Длительный отдых' + (why ? ' (' + why + ')' : '') + ': здоровье, ячейки и умения восстановлены.', 'muted');
   };
@@ -377,11 +382,20 @@
       if (who === 'comp') { const got = G.healComp(amt); G.note(G.compDef().short + ' пьёт зелье: +' + got + ' хитов.', 'muted'); }
       else { const got = G.heal(amt); G.note('Вы пьёте зелье: +' + got + ' хитов.', 'muted'); }
     }
+    if (it.use === 'vitality') {
+      G.take(id); S.hero.hp = G.maxHp(); S.hero.hd = S.hero.lvl;
+      G.note('Зелье жизненной силы: вы полностью здоровы, кости хитов восстановлены.', 'muted');
+    }
     if (it.use === 'equip') {
       const h = S.hero;
       if (id === 'talon') { h.equip.talon = !h.equip.talon; if (h.equip.talon) h.equip.hew = false; }
       if (id === 'hew') { h.equip.hew = !h.equip.hew; if (h.equip.hew) h.equip.talon = false; }
       if (id === 'ring_protection') h.equip.ring = !h.equip.ring;
+      if (id === 'boots') h.equip.boots = !h.equip.boots;
+      if (id === 'gauntlets') h.equip.gauntlets = !h.equip.gauntlets;
+      if (id === 'lightbringer') h.equip.lightbringer = !h.equip.lightbringer;
+      if (id === 'dragonguard') h.equip.dragonguard = !h.equip.dragonguard;
+      if (id === 'spider_staff') h.equip.spiderStaff = !h.equip.spiderStaff;
       if (id === 'staff_defense') { h.equip.staff = !h.equip.staff; if (h.equip.staff) { h.mageArmor = true; h.res.freeShield = 2; } }
       if (id === 'studded') h.equip.armor = h.equip.armor === 'studded' ? null : 'studded';
       if (id === 'splint') h.equip.armor = h.equip.armor === 'splint' ? null : 'splint';
@@ -390,7 +404,7 @@
   };
   G.isEquipped = id => {
     const e = G.S.hero.equip;
-    return (id === 'talon' && e.talon) || (id === 'hew' && e.hew) || (id === 'ring_protection' && e.ring) || (id === 'staff_defense' && e.staff) || (id === 'studded' && e.armor === 'studded') || (id === 'splint' && e.armor === 'splint');
+    return (id === 'boots' && e.boots) || (id === 'gauntlets' && e.gauntlets) || (id === 'lightbringer' && e.lightbringer) || (id === 'dragonguard' && e.dragonguard) || (id === 'spider_staff' && e.spiderStaff) || (id === 'talon' && e.talon) || (id === 'hew' && e.hew) || (id === 'ring_protection' && e.ring) || (id === 'staff_defense' && e.staff) || (id === 'studded' && e.armor === 'studded') || (id === 'splint' && e.armor === 'splint');
   };
   G.castOutside = id => {
     const S = G.S, h = S.hero, sp = G.SPELLS[id];

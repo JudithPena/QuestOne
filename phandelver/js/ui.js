@@ -79,6 +79,16 @@
     if (st.surprised) out.push('врасплох');
     return out.concat(extra || []).map(s => '<span class="st">' + s + '</span>').join('');
   }
+  const DMG_SHORT = { slashing: 'рубящий', piercing: 'колющий', bludgeoning: 'дробящий', fire: 'огонь', cold: 'холод', acid: 'кислота', radiant: 'излучение', force: 'сила', necrotic: 'некротика', lightning: 'молния', poison: 'яд' };
+  function traits(e) {
+    const m = G.MONSTERS[e.k], out = [];
+    if (m.vuln) out.push('уязвим: ' + m.vuln.map(t => DMG_SHORT[t]).join(', '));
+    if (m.immune) out.push('иммунитет: ' + m.immune.map(t => DMG_SHORT[t]).join(', '));
+    if (m.resist) out.push('сопротивление: ' + m.resist.map(t => DMG_SHORT[t]).join(', '));
+    if (m.resistMundane) out.push('немагическое оружие — половина урона');
+    if (m.undead) out.push('нежить');
+    return out.length ? '<div class="foe-traits">' + out.join(' · ') + '</div>' : '';
+  }
   function combatHTML() {
     const S = G.S, C = S.combat, h = S.hero, E2 = G.ENC[C.id];
     let out = eyebrow() + '<h1>' + E(G.val(E2.title) || 'Бой') + '</h1>' + notes();
@@ -88,7 +98,7 @@
       return '<button class="foe' + (sel ? ' sel' : '') + (e.out ? ' out' : '') + '" data-a="tgt:' + e.uid + '"' + (e.out ? ' disabled' : '') + '>' +
         '<div class="foe-top"><b>' + E(e.name) + '</b><span class="n">' + (e.out ? status : e.hp + '/' + e.max) + '</span></div>' +
         '<div class="meter"><i style="width:' + (e.hp / e.max * 100) + '%"></i></div>' +
-        '<div class="foe-meta">КД ' + e.ac + (C.marked[e.uid] ? ' · метка' : '') + statusChips(e.st, e.poisoned ? ['пьян'] : []) + '</div></button>';
+        '<div class="foe-meta">КД ' + e.ac + (C.marked[e.uid] ? ' · метка' : '') + statusChips(e.st, e.poisoned ? ['пьян'] : []) + '</div>' + traits(e) + '</button>';
     }).join('') + '</div>';
     const me = [];
     if (C.conc) me.push('концентрация: ' + (G.SPELLS[C.conc] ? G.SPELLS[C.conc].name : 'Удержание'));
@@ -134,6 +144,7 @@
     if (C.comp && G.has('potion_heal')) acts += btn('potion:comp', 'Зелье напарнику', 'действие · ' + E(G.compDef().short), T.action);
     if (G.has('potion_invis')) acts += btn('invis', 'Зелье невидимости', 'действие', T.action);
     if (G.has('scroll_fireball') && h.cls === 'wizard') acts += btn('scroll:scroll_fireball', 'Свиток огненного шара', '8к6 по всем', T.action);
+    if (G.has('wand_mm')) acts += btn('wand', 'Палочка волшебных стрел', 'зарядов ' + (S.f.wandCharges == null ? 7 : S.f.wandCharges), T.action && (S.f.wandCharges == null || S.f.wandCharges > 0));
     if (G.has('scroll_lightning') && h.cls === 'wizard') acts += btn('scroll:scroll_lightning', 'Свиток молнии', '8к6 двоим', T.action);
     if (G.has('scroll_revivify') && h.cls === 'cleric' && C.comp && C.comp.down) acts += btn('revive', 'Свиток возрождения', 'поднять напарника', T.action);
     acts += btn('dodge', 'Оборона', 'по вам с помехой', T.action);
@@ -227,6 +238,7 @@
       }
       if (it.use === 'equip' && it.who && it.who.includes(h.cls) && !S.combat) btns += '<button class="link" data-a="use:' + id + '">' + (G.isEquipped(id) ? 'Снять' : 'Надеть') + '</button>';
       if (it.use === 'equip' && it.who && !it.who.includes(h.cls)) btns += '<span class="muted">не для вашего класса</span>';
+      if (it.use === 'vitality' && !S.combat) btns += '<button class="link" data-a="use:' + id + '">Выпить</button>';
       if (it.use === 'brandy' && !S.combat) btns += '<button class="link" data-a="brandy"' + (h.hp >= G.maxHp() ? ' disabled' : '') + '>Выпить стакан</button>';
       if (it.use === 'oracle' && !S.combat) btns += '<button class="link" data-a="oracle">Задать вопрос</button>';
       return '<li><div><b>' + it.name + (n > 1 ? ' ×' + n : '') + (G.isEquipped(id) ? ' <i class="gold">надето</i>' : '') + '</b><span>' + it.text + '</span></div><div>' + btns + '</div></li>';
@@ -301,7 +313,7 @@
       '<p class="eyebrow">Приключение для одного героя · D&amp;D 5e</p>' +
       '<h1 class="big">Затерянные рудники Фанделвера</h1>' +
       '<p class="lede">Текстовая игра по стартовому модулю «Затерянные рудники Фанделвера». Гоблинские засады, банда Красноклеймённых, таинственный Чёрный Паук и легендарная Кузница Заклинаний. Герой растёт с 1 по 5 уровень.</p>' +
-      '<p class="muted">Сейчас доступны главы 1–3. Глава 4 появится в следующем обновлении, сохранения перенесутся.</p>' +
+      '<p class="muted">Все четыре главы модуля: от гоблинской засады до Кузницы Заклинаний.</p>' +
       '<div class="choices">' +
       (saved ? '<button class="choice main" data-a="continue"><span>Продолжить: ' + E(saved.hero.name) + ', ' + G.CLASSES[saved.hero.cls].name.toLowerCase() + ' ' + saved.hero.lvl + ' ур.</span><span class="tag">' + E(saved.loc || '') + '</span></button>' : '') +
       '<button class="choice' + (saved ? '' : ' main') + '" data-a="create"><span>Новый герой</span></button>' +
@@ -410,6 +422,7 @@
       case 'invis': return G.act.invis();
       case 'scroll': return G.act.scroll(arg);
       case 'revive': return G.act.revive();
+      case 'wand': return G.act.wand();
       case 'dodge': return G.act.dodge();
       case 'flee': return G.act.flee();
       case 'cast': return G.act.cast(arg);
