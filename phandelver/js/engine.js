@@ -63,7 +63,7 @@
     if (G.S.hero.race === 'human' && false) b += 0;
     return b;
   };
-  G.saveBonus = ab => G.mod(ab) + (G.cls().saves.includes(ab) ? G.prof() : 0);
+  G.saveBonus = ab => G.mod(ab) + (G.cls().saves.includes(ab) ? G.prof() : 0) + (G.S.hero.equip.ring ? 1 : 0);
   G.toolsBonus = () => G.mod('dex') + (G.cls().tools ? G.prof() * 2 : 0);
   G.passive = sk => 10 + G.skillBonus(sk);
   G.maxHp = () => {
@@ -80,6 +80,7 @@
     else if (h.cls === 'rogue') ac = 12 + dex;
     else ac = h.equip.armor === 'splint' ? 17 : c.armor.base;
     if (c.shield) ac += 2;
+    if (h.equip.ring) ac += 1;
     return ac;
   };
   G.armorName = () => {
@@ -92,6 +93,7 @@
     const h = G.S.hero, w = Object.assign({}, G.cls().weapon);
     w.magic = 0;
     if (h.cls === 'fighter' && h.equip.talon) { w.name = 'Коготь (длинный меч +1)'; w.magic = 1; }
+    if (h.cls === 'fighter' && h.equip.hew) { w.name = 'Рассекатель (топор +1)'; w.magic = 1; }
     if (h.cls === 'wizard' && h.equip.staff) w.name = 'Посох защиты';
     w.hit = G.prof() + G.mod(w.abil) + w.magic;
     w.dmgMod = G.mod(w.abil) + w.bonusDmg + w.magic;
@@ -161,7 +163,13 @@
   G.clue = t => { if (!G.S.clues.includes(t)) { G.S.clues.push(t); G.note('В журнал: ' + t, 'clue'); } };
   G.heal = n => { const h = G.S.hero, b = h.hp; h.hp = Math.min(G.maxHp(), h.hp + n); return h.hp - b; };
   G.hurt = n => { const h = G.S.hero; h.hp = Math.max(0, h.hp - n); return n; };
-  G.compDef = () => (G.S.comp ? G.COMPANIONS[G.S.comp] : null);
+  G.compDef = () => {
+    const S = G.S;
+    if (!S.comp) return null;
+    const d = G.COMPANIONS[S.comp];
+    if (S.comp === 'sildar' && S.f.sildarGear) return Object.assign({}, d, { ac: 18, atk: Object.assign({}, d.atk, { hit: 6 }) });
+    return d;
+  };
   G.compHp = () => (G.S.comp ? (G.S.compHp[G.S.comp] ?? G.COMPANIONS[G.S.comp].hp) : 0);
   G.setComp = id => {
     const S = G.S;
@@ -371,7 +379,9 @@
     }
     if (it.use === 'equip') {
       const h = S.hero;
-      if (id === 'talon') h.equip.talon = !h.equip.talon;
+      if (id === 'talon') { h.equip.talon = !h.equip.talon; if (h.equip.talon) h.equip.hew = false; }
+      if (id === 'hew') { h.equip.hew = !h.equip.hew; if (h.equip.hew) h.equip.talon = false; }
+      if (id === 'ring_protection') h.equip.ring = !h.equip.ring;
       if (id === 'staff_defense') { h.equip.staff = !h.equip.staff; if (h.equip.staff) { h.mageArmor = true; h.res.freeShield = 2; } }
       if (id === 'studded') h.equip.armor = h.equip.armor === 'studded' ? null : 'studded';
       if (id === 'splint') h.equip.armor = h.equip.armor === 'splint' ? null : 'splint';
@@ -380,7 +390,7 @@
   };
   G.isEquipped = id => {
     const e = G.S.hero.equip;
-    return (id === 'talon' && e.talon) || (id === 'staff_defense' && e.staff) || (id === 'studded' && e.armor === 'studded') || (id === 'splint' && e.armor === 'splint');
+    return (id === 'talon' && e.talon) || (id === 'hew' && e.hew) || (id === 'ring_protection' && e.ring) || (id === 'staff_defense' && e.staff) || (id === 'studded' && e.armor === 'studded') || (id === 'splint' && e.armor === 'splint');
   };
   G.castOutside = id => {
     const S = G.S, h = S.hero, sp = G.SPELLS[id];

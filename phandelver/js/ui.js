@@ -96,6 +96,8 @@
     if (C.hero.invis > 0) me.push('невидим');
     if (C.hero.prone) me.push('на земле');
     if (C.hero.held) me.push('парализован');
+    if (C.hero.ash) me.push('в пепле');
+    if (C.hero.restrained) me.push('опутан');
     if (C.dodge) me.push('оборона');
     if (C.sw) me.push('духовное оружие');
     out += '<div class="me">Вы: КД ' + (G.ac() + (C.conc === 'shield_of_faith' ? 2 : 0)) + (me.length ? ' · ' + me.join(' · ') : '') +
@@ -132,6 +134,8 @@
     if (C.comp && G.has('potion_heal')) acts += btn('potion:comp', 'Зелье напарнику', 'действие · ' + E(G.compDef().short), T.action);
     if (G.has('potion_invis')) acts += btn('invis', 'Зелье невидимости', 'действие', T.action);
     if (G.has('scroll_fireball') && h.cls === 'wizard') acts += btn('scroll:scroll_fireball', 'Свиток огненного шара', '8к6 по всем', T.action);
+    if (G.has('scroll_lightning') && h.cls === 'wizard') acts += btn('scroll:scroll_lightning', 'Свиток молнии', '8к6 двоим', T.action);
+    if (G.has('scroll_revivify') && h.cls === 'cleric' && C.comp && C.comp.down) acts += btn('revive', 'Свиток возрождения', 'поднять напарника', T.action);
     acts += btn('dodge', 'Оборона', 'по вам с помехой', T.action);
     if (C.canFlee) acts += btn('flee', 'Отступить', 'выйти из боя', T.action);
 
@@ -223,6 +227,8 @@
       }
       if (it.use === 'equip' && it.who && it.who.includes(h.cls) && !S.combat) btns += '<button class="link" data-a="use:' + id + '">' + (G.isEquipped(id) ? 'Снять' : 'Надеть') + '</button>';
       if (it.use === 'equip' && it.who && !it.who.includes(h.cls)) btns += '<span class="muted">не для вашего класса</span>';
+      if (it.use === 'brandy' && !S.combat) btns += '<button class="link" data-a="brandy"' + (h.hp >= G.maxHp() ? ' disabled' : '') + '>Выпить стакан</button>';
+      if (it.use === 'oracle' && !S.combat) btns += '<button class="link" data-a="oracle">Задать вопрос</button>';
       return '<li><div><b>' + it.name + (n > 1 ? ' ×' + n : '') + (G.isEquipped(id) ? ' <i class="gold">надето</i>' : '') + '</b><span>' + it.text + '</span></div><div>' + btns + '</div></li>';
     }).join('');
     return sheetWrap('Сумка',
@@ -295,7 +301,7 @@
       '<p class="eyebrow">Приключение для одного героя · D&amp;D 5e</p>' +
       '<h1 class="big">Затерянные рудники Фанделвера</h1>' +
       '<p class="lede">Текстовая игра по стартовому модулю «Затерянные рудники Фанделвера». Гоблинские засады, банда Красноклеймённых, таинственный Чёрный Паук и легендарная Кузница Заклинаний. Герой растёт с 1 по 5 уровень.</p>' +
-      '<p class="muted">Сейчас доступны главы 1 и 2. Главы 3 и 4 появятся в следующих обновлениях, сохранения перенесутся.</p>' +
+      '<p class="muted">Сейчас доступны главы 1–3. Глава 4 появится в следующем обновлении, сохранения перенесутся.</p>' +
       '<div class="choices">' +
       (saved ? '<button class="choice main" data-a="continue"><span>Продолжить: ' + E(saved.hero.name) + ', ' + G.CLASSES[saved.hero.cls].name.toLowerCase() + ' ' + saved.hero.lvl + ' ур.</span><span class="tag">' + E(saved.loc || '') + '</span></button>' : '') +
       '<button class="choice' + (saved ? '' : ' main') + '" data-a="create"><span>Новый герой</span></button>' +
@@ -380,6 +386,8 @@
       case 'use': return G.useItemOutside(arg, 'hero');
       case 'usecomp': return G.useItemOutside(arg, 'comp');
       case 'castout': return G.castOutside(arg);
+      case 'brandy': { if (!S.f.brandyLeft) S.f.brandyLeft = 20; S.f.brandyLeft--; G.heal(1); if (S.f.brandyLeft <= 0) G.take('brandy'); G.note('Дварфский бренди обжигает горло: +1 хит.', 'muted'); G.save(); return G.render(); }
+      case 'oracle': G.UI.sheet = null; return G.go('c3_oracle');
       case 'buy': {
         const sh = G.SHOPS[G.UI.shop];
         const list = G.val(sh.items).filter(i => !i.who || i.who.includes(S.hero.cls));
@@ -401,6 +409,7 @@
       case 'potion': return G.act.potion(arg === 'comp' ? 'comp' : 'hero');
       case 'invis': return G.act.invis();
       case 'scroll': return G.act.scroll(arg);
+      case 'revive': return G.act.revive();
       case 'dodge': return G.act.dodge();
       case 'flee': return G.act.flee();
       case 'cast': return G.act.cast(arg);

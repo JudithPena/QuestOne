@@ -138,6 +138,7 @@ window.G = window.G || {};
     burning_hands: { name: 'Огненные ладони', lvl: 1, cost: 'action', kind: 'save', save: 'dex', dice: [3, 6], type: 'fire', targets: 3, half: true, text: 'До трёх врагов, спасбросок Ловкости, 3к6 огнём (половина при успехе).' },
     mage_armor: { name: 'Доспехи мага', lvl: 1, cost: 'action', kind: 'special', noCombat: false, text: 'КД 13 + Ловкость до длительного отдыха.' },
     shield_spell: { name: 'Щит', lvl: 1, cost: 'reaction', kind: 'special', text: 'Реакция: +5 к КД до вашего хода, когда по вам попадают. Включите, чтобы использовать автоматически.' },
+    lightning_bolt: { name: 'Молния', lvl: 3, cost: 'action', kind: 'save', save: 'dex', dice: [8, 6], type: 'lightning', targets: 2, half: true, text: 'Линия: до двух врагов, спасбросок Ловкости, 8к6 электричеством.' },
     scorching_ray: { name: 'Палящий луч', lvl: 2, cost: 'action', kind: 'rays', rays: 3, dice: [2, 6], type: 'fire', text: 'Три луча, каждый — атака заклинанием на 2к6 огнём.' },
     hold_person_w: { name: 'Удержание личности', lvl: 2, cost: 'action', kind: 'hold', save: 'wis', text: 'Гуманоид парализован (спасбросок Мудрости в конце каждого его хода). Концентрация.' },
     fireball: { name: 'Огненный шар', lvl: 3, cost: 'action', kind: 'save', save: 'dex', dice: [8, 6], type: 'fire', targets: 99, half: true, text: 'Все враги, спасбросок Ловкости, 8к6 огнём (половина при успехе).' },
@@ -169,7 +170,21 @@ window.G = window.G || {};
     garaele_comb: { name: 'Серебряный гребень с камнями', use: 'story', text: 'Дар для баньши Агаты от сестры Гараэль.' },
     urmon_diary: { name: 'Дневник Урмона', use: 'story', text: 'Дварфская книга о Пакте Фанделвера и булаве Светоносной.' },
     spider_letter: { name: 'Письмо Чёрного Паука', use: 'story', text: 'Приказ Ярно: схватить чужаков и отправить дварфские карты.' },
-    lionshield_goods: { name: 'Товары Львиного Щита', use: 'story', text: 'Ящики с синим львом из пещеры Кларга.' }
+    lionshield_goods: { name: 'Товары Львиного Щита', use: 'story', text: 'Ящики с синим львом из пещеры Кларга.' },
+    ring_protection: { name: 'Кольцо защиты', use: 'equip', who: ['fighter', 'rogue', 'cleric', 'wizard'], text: 'Нетерильское кольцо: +1 к КД и спасброскам.' },
+    hew: { name: 'Рассекатель, боевой топор +1', use: 'equip', who: ['fighter'], text: 'Дварфский топор под ржавчиной. +1 к атаке и урону, максимальный урон растениям.' },
+    scroll_lightning: { name: 'Свиток молнии', use: 'scroll', spell: 'lightning_bolt', who: ['wizard'], text: 'Волшебник может прочитать его в бою: 8к6 электричеством по двум врагам на линии.' },
+    scroll_misty: { name: 'Свиток туманного шага', use: 'story', who: ['wizard'], text: 'Мгновенный прыжок на 30 футов. Поможет сбежать.' },
+    scroll_revivify: { name: 'Свиток возрождения', use: 'revive', who: ['cleric'], text: 'Жрец может вернуть к жизни павшего напарника прямо в бою.' },
+    scroll_silence: { name: 'Свиток тишины', use: 'story', who: ['cleric'], text: 'Сфера полной тишины.' },
+    scroll_darkness: { name: 'Свиток тьмы', use: 'story', who: ['wizard'], text: 'Непроглядная магическая тьма.' },
+    potion_flying: { name: 'Зелье полёта', use: 'story', text: 'На час дарует полёт.' },
+    garaele_potions: { name: 'Зелья Гараэль', use: 'story', text: '' },
+    gundren_map: { name: 'Карта Гандрена', use: 'story', text: 'Карта, ведущая к Пещере Морского Эха.' },
+    elf_statuette: { name: 'Золотая статуэтка солнечного эльфа', use: 'oracle', text: 'Магия прорицания: один раз ответит на любой вопрос.' },
+    brandy: { name: 'Дварфский бренди', use: 'brandy', text: 'Стакан восстанавливает 1 хит. Два за час — и вы пьяны.' },
+    emerald_necklace: { name: 'Изумрудное ожерелье Мирны', use: 'story', text: 'Золотое ожерелье с изящным изумрудным кулоном. Стоит 200 зм.' },
+    goblin_note: { name: 'Рисунок с награде', use: 'story', text: '«25 золотых за этого» — и ваш портрет. Внизу знак чёрного паука.' }
   };
 
   /* Чудовища. atk: [{n: название, hit, dice:[n,s], mod, type, extra?}] ; multi: число атак. */
@@ -213,6 +228,72 @@ window.G = window.G || {};
         { w: 35, n: 'Волшебная стрела', auto: true, darts: 3, dice: [1, 4], mod: 1, type: 'force', uses: 3 },
         { w: 25, n: 'Удержание личности', hold: true, save: 'wis', dc: 12, uses: 1 }
       ]
+    },
+    stirge: {
+      name: 'Кровопийца', ac: 14, hp: 2, dex: 3, init: 3, wis: -1, beast: true, pp: 9,
+      atk: [{ n: 'хоботок', hit: 5, dice: [1, 4], mod: 3, type: 'piercing' }]
+    },
+    ghoul: {
+      name: 'Упырь', ac: 12, hp: 22, dex: 2, init: 2, wis: 0, undead: true, pp: 10, immune: ['poison'],
+      atk: [{ n: 'когти', hit: 4, dice: [2, 4], mod: 2, type: 'slashing', paralyze: 10 }]
+    },
+    ogre: {
+      name: 'Огр', ac: 11, hp: 59, dex: -1, init: -1, wis: -2, pp: 8,
+      atk: [{ n: 'палица', hit: 6, dice: [2, 8], mod: 4, type: 'bludgeoning' }]
+    },
+    hobgoblin: {
+      name: 'Хобгоблин', ac: 18, hp: 11, dex: 1, init: 1, wis: 0, humanoid: true, pp: 10, martial: [2, 6],
+      atk: [{ n: 'длинный меч', hit: 3, dice: [1, 8], mod: 1, type: 'slashing' }]
+    },
+    orc: {
+      name: 'Орк', ac: 13, hp: 15, dex: 1, init: 1, wis: 0, humanoid: true, pp: 10,
+      atk: [{ n: 'секира', hit: 5, dice: [1, 12], mod: 3, type: 'slashing' }]
+    },
+    owlbear: {
+      name: 'Совомед', ac: 13, hp: 59, dex: 1, init: 1, wis: 1, beast: true, pp: 13, multi: 2, atkCycle: true,
+      atk: [{ n: 'клюв', hit: 7, dice: [1, 10], mod: 5, type: 'piercing' }, { n: 'когти', hit: 7, dice: [2, 8], mod: 5, type: 'slashing' }]
+    },
+    zombie: {
+      name: 'Пепельный зомби', ac: 8, hp: 22, dex: -2, init: -2, wis: -2, undead: true, pp: 8, fortitude: 3, ash: true, immune: ['poison'],
+      atk: [{ n: 'удар', hit: 3, dice: [1, 6], mod: 1, type: 'bludgeoning' }]
+    },
+    zombie_plain: {
+      name: 'Зомби', ac: 8, hp: 22, dex: -2, init: -2, wis: -2, undead: true, pp: 8, fortitude: 3, immune: ['poison'],
+      atk: [{ n: 'удар', hit: 3, dice: [1, 6], mod: 1, type: 'bludgeoning' }]
+    },
+    blight: {
+      name: 'Ветвистая зараза', ac: 13, hp: 4, dex: 1, init: 1, wis: -1, plant: true, pp: 9, vuln: ['fire'],
+      atk: [{ n: 'когти', hit: 3, dice: [1, 4], mod: 1, type: 'piercing' }]
+    },
+    spider: {
+      name: 'Гигантский паук', ac: 14, hp: 26, dex: 3, init: 3, wis: 0, beast: true, pp: 10,
+      atk: [{ n: 'укус', hit: 5, dice: [1, 8], mod: 3, type: 'piercing', poison: [2, 8, 11] }],
+      special: [{ w: 25, n: 'Паутина', web: true, uses: 1 }]
+    },
+    dragon: {
+      name: 'Веномфанг', ac: 18, hp: 136, dex: 1, init: 1, wis: 1, pp: 17, multi: 2, atkCycle: true, immune: ['poison'],
+      atk: [{ n: 'укус', hit: 7, dice: [2, 10], mod: 4, type: 'piercing' }, { n: 'когти', hit: 7, dice: [2, 6], mod: 4, type: 'slashing' }],
+      special: [{ w: 30, n: 'Ядовитое дыхание', save: 'con', dc: 14, dice: [8, 6], type: 'poison', half: true, uses: 1, all: true }]
+    },
+    cultist: {
+      name: 'Культист', ac: 12, hp: 9, dex: 1, init: 1, wis: 0, humanoid: true, pp: 10,
+      atk: [{ n: 'скимитар', hit: 3, dice: [1, 6], mod: 1, type: 'slashing' }]
+    },
+    kost: {
+      name: 'Хаман Кост', ac: 12, hp: 22, dex: 1, init: 1, wis: 1, humanoid: true, pp: 11,
+      atk: [{ n: 'шоковое касание', hit: 4, dice: [1, 8], mod: 0, type: 'lightning' }],
+      special: [
+        { w: 35, n: 'Луч болезни', save: 'con', dc: 12, dice: [2, 8], type: 'poison', half: false, uses: 3 },
+        { w: 25, n: 'Удержание личности', hold: true, save: 'wis', dc: 12, uses: 1 }
+      ]
+    },
+    grick: {
+      name: 'Грик', ac: 14, hp: 27, dex: 2, init: 2, wis: 0, pp: 12, multi: 2, atkCycle: true, resistMundane: true,
+      atk: [{ n: 'щупальца', hit: 4, dice: [2, 6], mod: 2, type: 'slashing' }, { n: 'клюв', hit: 4, dice: [1, 6], mod: 2, type: 'piercing' }]
+    },
+    doppelganger: {
+      name: 'Вайерит', ac: 14, hp: 52, dex: 4, init: 4, wis: 1, pp: 11, multi: 2, surprise: [3, 6],
+      atk: [{ n: 'удар', hit: 6, dice: [1, 6], mod: 4, type: 'bludgeoning' }]
     },
     sildar: {
       name: 'Сильдар', ac: 16, hp: 27, dex: 0, humanoid: true,
