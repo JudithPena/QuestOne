@@ -843,7 +843,7 @@
     if (res === 'win') {
       if (S.hero.hp <= 0) { S.hero.hp = 1; G.note('Напарник приводит вас в чувство. 1 хит.', 'muted'); }
       if (S.comp && G.compHp() <= 0) S.compHp[S.comp] = 1;
-      const xp = G.val(E.xp);
+      const xp = G.val(E.xp, info);
       if (xp) G.xp(xp, E.xpWhy || 'победа в бою');
       if (E.onWin) E.onWin(S, info);
       G.go(G.val(E.win));

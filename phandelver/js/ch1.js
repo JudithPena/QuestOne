@@ -83,7 +83,7 @@
     enemies: [{ k: 'goblin', n: 2 }],
     lastFlees: false,
     win: 'c1_after_ambush',
-    xp: 0
+    xp: 50, xpWhy: 'гоблинская засада'
   };
   ENC.c1_ambush = Object.assign({}, ambushBase, {
     surprise: s => {
@@ -163,7 +163,7 @@
       'Вы отводите волов с дороги и привязываете их в чаще. Гоблин семенит впереди, то и дело оглядываясь. Дважды он останавливается и показывает: «Тут петля. Тут яма». Вы обходите обе ловушки.',
       'Через пять миль тропа приводит к пещере в склоне холма.'
     ],
-    enter: s => { G.xp(75, 'засада и путь к логову'); },
+    enter: s => { G.xp(25, 'путь к логову найден'); },
     choices: [{ t: 'Подойти к пещере', go: 'c1_entrance', do: s => { s.f.guideLeft = true; } }]
   };
   SC.c1_trail = {
@@ -228,7 +228,7 @@
   };
   SC.c1_arrive = {
     chapter: 1, loc: 'Гоблинская тропа', title: 'Логово',
-    enter: s => { G.xp(75, 'засада и путь к логову'); },
+    enter: s => { G.xp(25, 'путь к логову найден'); },
     text: ['Пять миль от места засады, и тропа упирается в холм.'],
     choices: [{ t: 'Подойти ближе', go: 'c1_entrance' }]
   };
@@ -264,7 +264,7 @@
     text: ['Вы шлёпаете по ручью, и из кустов на восточном берегу выскакивают два гоблина-дозорных.'],
     choices: [{ t: 'К бою!', fight: 'c1_blind' }]
   };
-  const blind = { title: 'Дозорный пост', enemies: [{ k: 'goblin', n: 1, name: 'Гоблин-дозорный' }, { k: 'goblin', n: 1, name: 'Гоблин-лучник' }], win: 'c1_blind_win', onWin: s => { s.f.c1_blind_done = true; } };
+  const blind = { title: 'Дозорный пост', enemies: [{ k: 'goblin', n: 1, name: 'Гоблин-дозорный' }, { k: 'goblin', n: 1, name: 'Гоблин-лучник' }], win: 'c1_blind_win', xp: 50, xpWhy: 'дозорный пост', onWin: s => { s.f.c1_blind_done = true; } };
   ENC.c1_blind = Object.assign({}, blind);
   ENC.c1_blind_surprise = Object.assign({}, blind, { surprise: 'hero' });
   SC.c1_blind_win = {
@@ -311,7 +311,7 @@
       { t: 'Отступить наверх', go: 'c1_entrance' }
     ]
   };
-  ENC.c1_wolves = { title: 'Псарня', enemies: [{ k: 'wolf', n: 1 }, { k: 'wolf', n: 1, name: 'Волк 2', ifComp: true }], win: 'c1_wolves_win', onWin: s => { s.f.c1_wolves_done = true; } };
+  ENC.c1_wolves = { title: 'Псарня', enemies: [{ k: 'wolf', n: 1 }, { k: 'wolf', n: 1, name: 'Волк 2', ifComp: true }], win: 'c1_wolves_win', xp: 25, xpWhy: 'волки', onWin: s => { s.f.c1_wolves_done = true; } };
   SC.c1_wolves_win = {
     chapter: 1, loc: 'Убежище Каменных Пастей', title: '3. Псарня',
     rest: true,
@@ -409,7 +409,7 @@
     text: s => ['Поток сбивает вас с ног и выносит к самому входу в пещеру. Урон ' + s.f.floodDmg + '. Мокрый и злой, вы выбираетесь на берег.'],
     choices: [{ t: 'Вернуться в туннель', go: 'c1_bridge_alarm' }]
   };
-  const bridge = { title: 'Часовой на мосту', enemies: [{ k: 'goblin', n: 1, name: 'Гоблин-часовой' }], win: 'c1_overpass', onWin: s => { s.f.c1_bridge_done = true; } };
+  const bridge = { title: 'Часовой на мосту', enemies: [{ k: 'goblin', n: 1, name: 'Гоблин-часовой' }], win: 'c1_overpass', xp: 25, xpWhy: 'часовой на мосту', onWin: s => { s.f.c1_bridge_done = true; } };
   ENC.c1_bridge = Object.assign({}, bridge);
   ENC.c1_bridge_first = Object.assign({}, bridge, { surprise: 'hero' });
   SC.c1_overpass = {
@@ -488,7 +488,10 @@
     title: 'Гоблинская берлога',
     enemies: [{ k: 'goblin', n: 1, name: 'Гоблин-повар' }, { k: 'goblin', n: 1, name: 'Гоблин с поварёшкой', ifComp: true }, { k: 'goblin', n: 1, name: 'Гоблин-кашевар', ifComp: true }, { k: 'goblin_boss', n: 1 }],
     win: 'c1_den_win',
+    /* 25 за каждого гоблина и 100 за Йемика; если Йемик затеял переговоры — только за гоблинов */
+    xp: (s, info) => info.enemies.filter(e => e.out).reduce((a, e) => a + (e.k === 'goblin_boss' ? 100 : 25), 0), xpWhy: 'гоблинская берлога',
     onWin: s => { s.f.c1_den_done = true; },
+    onEvent: (s, info) => { const n = info.enemies.filter(e => e.out && e.k !== 'goblin_boss').length; if (n) G.xp(25 * n, 'гоблины в берлоге'); },
     /* Когда гоблины внизу повержены, Йемик хватает пленника и требует переговоров */
     trigger: (s, C) => {
       if (s.f.yemikParley) return null;
@@ -515,7 +518,7 @@
   };
   SC.c1_yemik_scared = {
     chapter: 1, loc: 'Убежище Каменных Пастей', title: 'Йемик сдаётся',
-    enter: s => { s.f.c1_den_done = true; G.xp(25, 'Йемик запуган'); },
+    enter: s => { s.f.c1_den_done = true; G.xp(100, 'Йемик запуган'); },
     text: ['Йемик смотрит на тела сородичей, на ваше оружие — и отпускает ворот пленника. «Ладно! Ладно! Йемик пошутил!» Он бросает скимитар и забивается в угол, прикрывая голову руками.'],
     choices: [{ t: 'Освободить пленника', go: 'c1_den_win' }]
   };
@@ -558,7 +561,7 @@
   };
   ENC.c1_yemik = {
     title: 'Йемик', enemies: s => [{ k: 'goblin_boss', n: 1, hp: Math.max(1, s.f.yemikHp || 12) }],
-    win: 'c1_den_win', onWin: s => { s.f.c1_den_done = true; }
+    win: 'c1_den_win', xp: 100, xpWhy: 'Йемик повержен', onWin: s => { s.f.c1_den_done = true; }
   };
   SC.c1_yemik_ransom = {
     chapter: 1, loc: 'Убежище Каменных Пастей', title: 'Цена слова гоблина',
@@ -638,7 +641,7 @@
       ]
   };
   const pools = {
-    title: 'Пещера с двумя водоёмами', enemies: [{ k: 'goblin', n: 2 }], win: 'c1_pools_win',
+    title: 'Пещера с двумя водоёмами', enemies: [{ k: 'goblin', n: 2 }], win: 'c1_pools_win', xp: 50, xpWhy: 'гоблины у водоёмов',
     onWin: s => { s.f.c1_pools_done = true; }
   };
   ENC.c1_pools = Object.assign({}, pools, { intro: 'Один из гоблинов с визгом бежит на юг — предупредить Кларга!', onWin: s => { s.f.c1_pools_done = true; s.f.klargWarned = true; } });
@@ -672,6 +675,7 @@
     title: 'Кларг',
     enemies: [{ k: 'bugbear', n: 1, name: 'Кларг', hp: 27, soloHp: 20 }, { k: 'wolf', n: 1, name: 'Потрошитель', ifComp: true }],
     win: 'c1_klarg_win',
+    xp: s => (s.comp ? 125 : 100), xpWhy: 'Кларг повержен',
     onWin: s => { s.f.c1_klarg_done = true; }
   };
   ENC.c1_klarg = Object.assign({}, klarg);
@@ -714,7 +718,7 @@
   SC.c1_end = {
     chapter: 1, loc: 'Триборская тропа', title: 'Конец главы 1',
     enter: s => {
-      if (!s.f.c1_endXp) { s.f.c1_endXp = true; G.xp(275, 'логово Каменных Пастей очищено'); }
+      if (!s.f.c1_endXp) { s.f.c1_endXp = true; G.xp(50, 'логово Каменных Пастей очищено'); }
     },
     text: [
       'Вы грузите ящики Львиных Щитов в повозку, возвращаетесь на Триборскую тропу и к вечеру следующего дня въезжаете в предгорья.',

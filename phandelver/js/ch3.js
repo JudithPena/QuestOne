@@ -506,7 +506,7 @@
     choices: [{ t: 'Напасть', fight: 'c3_wyv_sentry' }]
   };
   ENC.c3_wyv_sentry = {
-    title: 'Орк-часовой', enemies: [{ k: 'orc', n: 1, name: 'Орк-часовой' }], surprise: 'hero', win: 'c3_wyv_cave_door',
+    title: 'Орк-часовой', enemies: [{ k: 'orc', n: 1, name: 'Орк-часовой' }], surprise: 'hero', xp: 25, xpWhy: 'орк-часовой', win: 'c3_wyv_cave_door',
     onWin: (s, info) => { s.f.wyvAlarm = info.rounds > 2; }
   };
   SC.c3_wyv_sentry_alarm = {
