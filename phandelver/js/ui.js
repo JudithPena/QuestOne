@@ -141,7 +141,7 @@
     out += '<div class="foes">' + C.enemies.map(e => {
       const sel = e.uid === C.target && !e.out;
       const status = e.out ? { dead: 'повержен', captured: 'в плену', fled: 'сбежал', turned: 'бежит', surrender: 'сдался' }[e.out] : '';
-      return '<button class="foe' + (sel ? ' sel' : '') + (e.out ? ' out' : '') + '" data-uid="' + e.uid + '" data-a="tgt:' + e.uid + '"' + (e.out ? ' disabled' : '') + '>' +
+      return '<button class="foe' + (sel ? ' sel' : '') + (e.out ? ' out' : '') + (C.busy && C.order[C.idx] === e.uid ? ' acting' : '') + '" data-uid="' + e.uid + '" data-a="tgt:' + e.uid + '"' + (e.out ? ' disabled' : '') + '>' +
         '<div class="foe-top"><b>' + E(e.name) + '</b><span class="n">' + (e.out ? status : e.hp + '/' + e.max) + '</span></div>' +
         '<div class="meter"><i style="width:' + (e.hp / e.max * 100) + '%"></i></div>' +
         '<div class="foe-meta">КД ' + e.ac + (C.marked[e.uid] ? ' · метка' : '') + statusChips(e.st, e.poisoned ? ['пьян'] : []) + '</div>' + traits(e) + '</button>';
@@ -206,6 +206,10 @@
         }).join('') + '</div>';
       if (h.cls === 'wizard') spells += '<label class="tog"><input type="checkbox" id="shieldAuto" data-a="shieldtoggle"' + (h.shieldAuto ? ' checked' : '') + '> Щит: ставить автоматически при попадании (' + (h.res.freeShield ? h.res.freeShield + ' заряда посоха, ' : '') + 'ячейки 1-го ур.)</label>';
       if (h.cls === 'cleric' && C.comp) spells += '<label class="tog"><input type="checkbox" id="healComp" data-a="healcomp"' + (G.UI.healComp ? ' checked' : '') + '> Лечить напарника, а не себя</label>';
+    }
+    if (C.busy) {
+      const who = C.order[C.idx];
+      return out + '<div class="turn waiting">Раунд ' + C.round + ' · ' + (who === 'hero' || who == null ? 'ход переходит…' : 'ходит: ' + E(G.actorName(who)) + '…') + '</div>';
     }
     const status = 'Раунд ' + C.round + ' · ваш ход · действие ' + (T.action ? '●' : '○') + ' · бонус ' + (T.bonus ? '●' : '○');
     out += '<div class="turn">' + status + '</div><div class="acts">' + acts + '</div>' + spells +
@@ -417,6 +421,7 @@
       t += f.t === 'dmg' ? 750 : 300;
       prev = f.t;
     });
+    if (q.length) G.UI.fxEnd = Date.now() + t + (prev === 'dmg' ? 400 : 300);
   }
   function foeFX(f) {
     const el = document.querySelector('.foe[data-uid="' + f.uid + '"]');
@@ -454,6 +459,8 @@
     const S = G.S;
     if (b.dataset.c !== undefined) return G.choose(CUR[+b.dataset.c]);
     const [a, arg] = b.dataset.a.split(':');
+    /* пока ходят враги, кнопки действий не работают */
+    if (S && S.combat && S.combat.busy && /^(atk|wind|surge|aim|hide|channel|sw|potion|invis|scroll|revive|wand|dodge|flee|cast|endturn)$/.test(a)) return;
     switch (a) {
       case 'create': G.UI.creating = true; return G.render();
       case 'totitle': G.UI.creating = false; return G.render();
@@ -466,7 +473,7 @@
         G.wipeCP && G.wipeCP();
         return G.go('c1_intro');
       }
-      case 'continue': G.S = G.load(); G.UI.logSeen = G.S.combat ? G.S.combat.log.length : 0; return G.render(true);
+      case 'continue': G.S = G.load(); G.UI.logSeen = G.S.combat ? G.S.combat.log.length : 0; G.render(true); return G.resumeTurns();
       case 'sheet': G.UI.sheet = arg; G.UI.confirm = false; G.UI.restHeal = []; return G.render();
       case 'close': if (G.UI.sheet === 'defeat') return; G.UI.sheet = null; return G.render();
       case 'askwipe': G.UI.confirm = true; return G.render();

@@ -279,3 +279,6 @@ h3 { font-size: 21px; margin: 20px 0 8px; }
 }
 .bar .hp.fx-hurt { animation: fx-hurt .6s ease; border-radius: 8px; }
 @keyframes fx-hurt { 0%, 100% { background: transparent; } 30% { background: rgba(216, 90, 73, .35); } }
+.turn.waiting { color: var(--blood); animation: fx-wait 1s ease-in-out infinite alternate; }
+@keyframes fx-wait { from { opacity: .55; } to { opacity: 1; } }
+.foe.acting { border-color: var(--blood); box-shadow: 0 0 0 1px var(--blood) inset, 0 0 14px rgba(216, 90, 73, .35); }

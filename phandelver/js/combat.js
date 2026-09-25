@@ -50,9 +50,7 @@
       log('good', 'Враги застигнуты врасплох: в первом раунде они не действуют.');
     }
     newRound();
-    advance();
-    G.save();
-    G.render(true);
+    runTurns(true);
   };
 
   /* Журнал боя: строки привязаны к раунду; заголовки раундов и ходов — отдельные записи */
@@ -90,29 +88,62 @@
   const actorName = id => (id === 'hero' ? 'Вы' : id === 'comp' ? (G.compDef() ? G.compDef().short : 'Напарник') : (byUid(id) || {}).name || '?');
   G.actorName = actorName;
 
-  /* Прокручивает ходы по порядку инициативы, пока не наступит ход героя
-     (тогда ждём нажатия кнопки) или бой не закончится. */
-  function advance() {
+  /* Один шаг очереди: выполняет ход одного участника.
+     'hero' — ход героя, ждём нажатия; 'end' — бой окончен; 'step' — кто-то сходил. */
+  function stepTurns() {
     const C = G.S.combat;
     for (let guard = 0; guard < 400; guard++) {
-      if (checkEnd()) return;
+      if (checkEnd()) return 'end';
       if (C.idx >= C.order.length) {
         endOfRound();
-        if (checkEnd()) return;
+        if (checkEnd()) return 'end';
         newRound();
         continue;
       }
       const id = C.order[C.idx];
       if (id === 'hero') {
-        if (startHeroTurn()) return;
+        if (startHeroTurn()) return 'hero';
         C.idx++;
-        continue;
+        return 'step';
       }
       if (id === 'comp') compTurn();
-      else { const e = byUid(id); if (e && !e.out) enemyTurn(e); }
+      else { const e = byUid(id); if (!e || e.out) { C.idx++; continue; } enemyTurn(e); }
       C.idx++;
+      return 'step';
     }
+    return 'hero';
   }
+
+  /* Прокручивает ходы по инициативе до хода героя или конца боя.
+     Ходы напарника и врагов идут по одному, с паузой G.PACE мс, чтобы успели
+     отыграть анимации. При G.PACE = 0 всё происходит сразу (для автотестов). */
+  G.PACE = 1300;
+  function runTurns(scroll) {
+    const C = G.S.combat;
+    if (!G.PACE) {
+      while (stepTurns() === 'step');
+      C.busy = false; G.save(); G.render(scroll);
+      return;
+    }
+    if (C.idx < C.order.length && C.order[C.idx] === 'hero') {
+      const r = stepTurns();
+      if (r !== 'step') { C.busy = false; G.save(); G.render(scroll); return; }
+    }
+    C.busy = true;
+    G.save(); G.render(scroll);
+    schedule(C);
+  }
+  function schedule(C) {
+    const wait = Math.max(G.PACE, (G.UI.fxEnd || 0) - Date.now() + 250);
+    setTimeout(() => {
+      if (!G.S || G.S.combat !== C || !C.busy) return;
+      const r = stepTurns();
+      if (r === 'step') { G.save(); G.render(); schedule(C); }
+      else { C.busy = false; G.save(); G.render(); }
+    }, wait);
+  }
+  /* После загрузки сохранения посреди хода врагов — продолжить очередь */
+  G.resumeTurns = () => { const C = G.S && G.S.combat; if (C && C.busy && !C.over) schedule(C); };
 
   /* Начало хода героя: эффекты «до начала вашего хода» заканчиваются, проверяем,
      может ли он действовать. true — ждём действий игрока. */
@@ -550,8 +581,7 @@
     if (checkEnd()) { G.save(); G.render(); return; }
     if (!force && heroCanStillAct()) { G.save(); G.render(); return; }
     C.idx++;
-    advance();
-    G.save(); G.render();
+    runTurns();
   }
 
   /* ---------- напарник ---------- */
